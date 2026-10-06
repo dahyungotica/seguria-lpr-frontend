@@ -8,43 +8,77 @@
   <link rel="icon" href="../../assets/logo.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="../../css/base.css" />
   <link rel="stylesheet" href="../../css/layout.css" />
+  <link rel="stylesheet" href="../../css/components.css" />
 </head>
 <body class="app">
   <!-- El sidebar y el header los genera js/layout.js según el rol -->
   <div class="app-main">
     <main class="contenido">
-        <section class="tarjeta">
-          <h2>Historial de accesos <span class="etiqueta pendiente">En construcción</span></h2>
-          <p class="texto-suave">Consulta todas las detecciones de patentes del recinto.</p>
-        </section>
-
-        <section class="tarjeta">
-          <h2>Funcionalidades previstas</h2>
-          <ul class="texto-suave">
-            <li>Filtros por fecha, patente, resultado y cámara</li>
-            <li>Ver la captura de cada acceso</li>
-            <li>Detalle de las autorizaciones manuales del guardia</li>
-          </ul>
-        </section>
-
-        <section class="tarjeta">
-          <div class="placeholder">
-            <strong>Contenido pendiente</strong>
-            <span>Este módulo se implementará en las siguientes etapas.</span>
+      <section class="tarjeta">
+        <form class="barra-filtros" id="form-filtros">
+          <div class="campo">
+            <label for="filtro-desde">Desde</label>
+            <input class="input" type="date" id="filtro-desde" name="desde" />
           </div>
-        </section>
+          <div class="campo">
+            <label for="filtro-hasta">Hasta</label>
+            <input class="input" type="date" id="filtro-hasta" name="hasta" />
+          </div>
+          <div class="campo">
+            <label for="filtro-patente">Patente</label>
+            <input class="input" type="search" id="filtro-patente" name="patente" maxlength="10" placeholder="ABCD12" autocomplete="off" />
+          </div>
+          <div class="campo">
+            <label for="filtro-resultado">Resultado</label>
+            <select class="input" id="filtro-resultado" name="resultado">
+              <option value="">Todos</option>
+              <option value="autorizado">Autorizado</option>
+              <option value="visita">Visita</option>
+              <option value="autorizado_manual">Autorizado manual</option>
+              <option value="denegado">Denegado</option>
+            </select>
+          </div>
+          <div class="campo">
+            <label for="filtro-camara">Cámara</label>
+            <select class="input" id="filtro-camara" name="camara_id"><option value="">Todas</option></select>
+          </div>
+          <div class="campo">
+            <label for="filtro-sentido">Sentido</label>
+            <select class="input" id="filtro-sentido" name="sentido">
+              <option value="">Ambos</option>
+              <option value="entrada">Entrada</option>
+              <option value="salida">Salida</option>
+            </select>
+          </div>
+          <button type="reset" class="btn btn-secundario" id="btn-limpiar">Limpiar</button>
+        </form>
+
+        <div class="tabla-contenedor">
+          <table class="tabla">
+            <thead>
+              <tr>
+                <th>Fecha y hora</th>
+                <th>Captura</th>
+                <th>Patente</th>
+                <th>Resultado</th>
+                <th>Asociado a</th>
+                <th>Cámara</th>
+                <th class="num">Confianza</th>
+              </tr>
+            </thead>
+            <tbody id="tabla-accesos"></tbody>
+          </table>
+        </div>
+        <div class="paginacion" id="paginacion"></div>
+      </section>
     </main>
   </div>
 
   <script src="../../js/config.js"></script>
   <script src="../../js/auth.js"></script>
   <script src="../../js/api.js"></script>
+  <script src="../../js/ui.js"></script>
   <script src="../../js/layout.js"></script>
-  <script>
-    const usuario = iniciarPagina({ roles: ['admin_recinto'], activo: 'historial', titulo: 'Historial de accesos' });
-    if (usuario) {
-      // TODO: cargar los datos de esta sección con api.get(...)
-    }
-  </script>
+  <script src="../../js/pages/admin-historial.js"></script>
 </body>
 </html>

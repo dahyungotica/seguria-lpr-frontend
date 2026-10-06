@@ -141,6 +141,36 @@ function iniciarPagina({ roles, activo, titulo }) {
   document.getElementById('btn-salir').addEventListener('click', cerrarSesion);
   activarMenuMovil();
 
+  if (usuario.rol === 'admin_recinto') cargarContadorNotificaciones();
+
   document.body.classList.add('listo');
   return usuario;
+}
+
+// ---------- Contador de notificaciones no leídas (admin de recinto) ----------
+
+function actualizarContadorNotificaciones(total) {
+  const enlace = document.querySelector('.sidebar-nav a[href$="notificaciones.html"]');
+  if (!enlace) return;
+  let contador = enlace.querySelector('.contador-menu');
+  if (!total) {
+    if (contador) contador.remove();
+    return;
+  }
+  if (!contador) {
+    contador = document.createElement('span');
+    contador.className = 'contador-menu';
+    enlace.appendChild(contador);
+  }
+  contador.textContent = total > 99 ? '99+' : String(total);
+  contador.setAttribute('aria-label', total + ' sin leer');
+}
+
+async function cargarContadorNotificaciones() {
+  try {
+    const { total } = await api.get('/notificaciones/no-leidas');
+    actualizarContadorNotificaciones(total);
+  } catch (e) {
+    // No es crítico: si falla, simplemente no se muestra el contador
+  }
 }

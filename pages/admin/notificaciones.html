@@ -8,61 +8,39 @@
   <link rel="icon" href="../../assets/logo.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="../../css/base.css" />
   <link rel="stylesheet" href="../../css/layout.css" />
+  <link rel="stylesheet" href="../../css/components.css" />
 </head>
 <body class="app">
   <!-- El sidebar y el header los genera js/layout.js según el rol -->
   <div class="app-main">
     <main class="contenido">
-        <section class="tarjeta">
-          <h2>Notificación de cambios <span class="etiqueta pendiente">En construcción</span></h2>
-          <p class="texto-suave">Cambios hechos por los propietarios en sus vehículos y otros avisos, en tiempo real.</p>
-        </section>
+      <section class="tarjeta">
+        <div class="seccion-cabecera">
+          <div>
+            <h2>Notificación de cambios</h2>
+            <p>Cambios que hacen los propietarios en sus vehículos y avisos del sistema, en tiempo real.</p>
+          </div>
+          <button type="button" class="btn btn-secundario" id="btn-leer-todas">Marcar todas como leídas</button>
+        </div>
 
-        <section class="tarjeta">
-          <h2>Funcionalidades previstas</h2>
-          <ul class="texto-suave">
-            <li>Listado de notificaciones (leídas / no leídas)</li>
-            <li>Comparar datos anteriores y nuevos de cada cambio</li>
-            <li>Marcar como leídas</li>
-          </ul>
-        </section>
+        <div class="pestanas" role="tablist" aria-label="Filtrar notificaciones">
+          <button type="button" class="pestana" role="tab" data-filtro="" aria-selected="true">Todas</button>
+          <button type="button" class="pestana" role="tab" data-filtro="false">No leídas <span class="contador" id="contador-no-leidas">0</span></button>
+        </div>
 
-        <section class="tarjeta">
-          <h2>Eventos en tiempo real</h2>
-          <ul class="lista-eventos" id="lista-eventos">
-            <li class="texto-suave">Esperando eventos…</li>
-          </ul>
-        </section>
+        <ul class="lista-notificaciones" id="lista-notificaciones" aria-live="polite"></ul>
+        <div class="paginacion" id="paginacion"></div>
+      </section>
     </main>
   </div>
 
   <script src="../../js/config.js"></script>
   <script src="../../js/auth.js"></script>
   <script src="../../js/api.js"></script>
+  <script src="../../js/ui.js"></script>
   <script src="../../js/layout.js"></script>
   <script src="https://cdn.socket.io/4.8.1/socket.io.min.js" crossorigin="anonymous"></script>
   <script src="../../js/socket.js"></script>
-  <script>
-    const usuario = iniciarPagina({ roles: ['admin_recinto'], activo: 'notificaciones', titulo: 'Notificación de cambios' });
-    if (usuario) {
-      // TODO: cargar los datos de esta sección con api.get(...)
-
-      const socket = conectarSocket();
-      const lista = document.getElementById('lista-eventos');
-
-      // Muestra cada evento recibido (placeholder hasta implementar el módulo)
-      function agregarEvento(nombre, datos) {
-        if (lista.querySelector('.texto-suave')) lista.innerHTML = '';
-        const item = document.createElement('li');
-        item.textContent = new Date().toLocaleTimeString('es-CL') + ' · ' + nombre + ' · ' + JSON.stringify(datos);
-        lista.prepend(item);
-      }
-
-      if (socket) {
-        socket.on('notificacion:nueva', (datos) => agregarEvento('notificacion:nueva', datos));
-        socket.on('vehiculo:cambio', (datos) => agregarEvento('vehiculo:cambio', datos));
-      }
-    }
-  </script>
+  <script src="../../js/pages/admin-notificaciones.js"></script>
 </body>
 </html>

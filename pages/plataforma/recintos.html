@@ -8,43 +8,62 @@
   <link rel="icon" href="../../assets/logo.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="../../css/base.css" />
   <link rel="stylesheet" href="../../css/layout.css" />
+  <link rel="stylesheet" href="../../css/components.css" />
 </head>
 <body class="app">
   <!-- El sidebar y el header los genera js/layout.js según el rol -->
   <div class="app-main">
     <main class="contenido">
-        <section class="tarjeta">
-          <h2>Recintos <span class="etiqueta pendiente">En construcción</span></h2>
-          <p class="texto-suave">Crea y administra los recintos (condominios, empresas, estacionamientos) que usan la plataforma.</p>
-        </section>
-
-        <section class="tarjeta">
-          <h2>Funcionalidades previstas</h2>
-          <ul class="texto-suave">
-            <li>Listado de recintos con búsqueda y filtros</li>
-            <li>Crear y editar recintos</li>
-            <li>Activar o desactivar un recinto</li>
-          </ul>
-        </section>
-
-        <section class="tarjeta">
-          <div class="placeholder">
-            <strong>Contenido pendiente</strong>
-            <span>Este módulo se implementará en las siguientes etapas.</span>
+      <section class="tarjeta">
+        <div class="seccion-cabecera">
+          <div>
+            <h2>Recintos de la plataforma</h2>
+            <p>Condominios, empresas y estacionamientos que usan SegurIA-LPR.</p>
           </div>
-        </section>
+          <button type="button" class="btn btn-primario" id="btn-nuevo">+ Nuevo recinto</button>
+        </div>
+
+        <div class="barra-filtros">
+          <div class="campo campo-busqueda">
+            <label for="filtro-busqueda">Buscar</label>
+            <input class="input" type="search" id="filtro-busqueda" placeholder="Nombre o comuna" />
+          </div>
+          <div class="campo">
+            <label for="filtro-estado">Estado</label>
+            <select class="input" id="filtro-estado">
+              <option value="">Todos</option>
+              <option value="true">Activos</option>
+              <option value="false">Inactivos</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="tabla-contenedor">
+          <table class="tabla">
+            <thead>
+              <tr>
+                <th>Recinto</th>
+                <th>Tipo</th>
+                <th>Ubicación</th>
+                <th class="num">Admins</th>
+                <th class="num">Propietarios</th>
+                <th class="num">Cámaras</th>
+                <th>Estado</th>
+                <th><span class="sr-only">Acciones</span></th>
+              </tr>
+            </thead>
+            <tbody id="tabla-recintos"></tbody>
+          </table>
+        </div>
+      </section>
     </main>
   </div>
 
   <script src="../../js/config.js"></script>
   <script src="../../js/auth.js"></script>
   <script src="../../js/api.js"></script>
+  <script src="../../js/ui.js"></script>
   <script src="../../js/layout.js"></script>
-  <script>
-    const usuario = iniciarPagina({ roles: ['admin_plataforma'], activo: 'recintos', titulo: 'Recintos' });
-    if (usuario) {
-      // TODO: cargar los datos de esta sección con api.get(...)
-    }
-  </script>
+  <script src="../../js/pages/plataforma-recintos.js"></script>
 </body>
 </html>

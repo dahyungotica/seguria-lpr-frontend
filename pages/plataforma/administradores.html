@@ -8,43 +8,66 @@
   <link rel="icon" href="../../assets/logo.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="../../css/base.css" />
   <link rel="stylesheet" href="../../css/layout.css" />
+  <link rel="stylesheet" href="../../css/components.css" />
 </head>
 <body class="app">
   <!-- El sidebar y el header los genera js/layout.js según el rol -->
   <div class="app-main">
     <main class="contenido">
-        <section class="tarjeta">
-          <h2>Administradores de recinto <span class="etiqueta pendiente">En construcción</span></h2>
-          <p class="texto-suave">Crea las cuentas de los administradores de cada recinto.</p>
-        </section>
-
-        <section class="tarjeta">
-          <h2>Funcionalidades previstas</h2>
-          <ul class="texto-suave">
-            <li>Listado de administradores por recinto</li>
-            <li>Crear administrador y asignarle un recinto</li>
-            <li>Activar o desactivar cuentas</li>
-          </ul>
-        </section>
-
-        <section class="tarjeta">
-          <div class="placeholder">
-            <strong>Contenido pendiente</strong>
-            <span>Este módulo se implementará en las siguientes etapas.</span>
+      <section class="tarjeta">
+        <div class="seccion-cabecera">
+          <div>
+            <h2>Administradores de recinto</h2>
+            <p>Cuentas que gestionan propietarios, cámaras e historial de cada recinto.</p>
           </div>
-        </section>
+          <button type="button" class="btn btn-primario" id="btn-nuevo">+ Nuevo administrador</button>
+        </div>
+
+        <div class="barra-filtros">
+          <div class="campo campo-busqueda">
+            <label for="filtro-busqueda">Buscar</label>
+            <input class="input" type="search" id="filtro-busqueda" placeholder="Nombre, email o RUT" />
+          </div>
+          <div class="campo">
+            <label for="filtro-recinto">Recinto</label>
+            <select class="input" id="filtro-recinto"><option value="">Todos</option></select>
+          </div>
+          <div class="campo">
+            <label for="filtro-estado">Estado</label>
+            <select class="input" id="filtro-estado">
+              <option value="">Todos</option>
+              <option value="true">Activos</option>
+              <option value="false">Inactivos</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="tabla-contenedor">
+          <table class="tabla">
+            <thead>
+              <tr>
+                <th>Administrador</th>
+                <th>RUT</th>
+                <th>Recinto</th>
+                <th>Último acceso</th>
+                <th>Estado</th>
+                <th><span class="sr-only">Acciones</span></th>
+              </tr>
+            </thead>
+            <tbody id="tabla-admins"></tbody>
+          </table>
+        </div>
+        <div class="paginacion" id="paginacion"></div>
+      </section>
     </main>
   </div>
 
   <script src="../../js/config.js"></script>
   <script src="../../js/auth.js"></script>
   <script src="../../js/api.js"></script>
+  <script src="../../js/ui.js"></script>
   <script src="../../js/layout.js"></script>
-  <script>
-    const usuario = iniciarPagina({ roles: ['admin_plataforma'], activo: 'administradores', titulo: 'Administradores de recinto' });
-    if (usuario) {
-      // TODO: cargar los datos de esta sección con api.get(...)
-    }
-  </script>
+  <script src="../../js/usuarios-form.js"></script>
+  <script src="../../js/pages/plataforma-administradores.js"></script>
 </body>
 </html>
