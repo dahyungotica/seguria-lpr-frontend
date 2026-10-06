@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0a1120" />
+  <title>Historial de accesos · SegurIA-LPR</title>
+  <link rel="icon" href="../../assets/logo.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="../../css/base.css" />
+  <link rel="stylesheet" href="../../css/layout.css" />
+</head>
+<body class="app">
+  <!-- El sidebar y el header los genera js/layout.js según el rol -->
+  <div class="app-main">
+    <main class="contenido">
+        <section class="tarjeta">
+          <h2>Historial de accesos <span class="etiqueta pendiente">En construcción</span></h2>
+          <p class="texto-suave">Ingresos y salidas de tus vehículos y de tus visitas.</p>
+        </section>
+
+        <section class="tarjeta">
+          <h2>Funcionalidades previstas</h2>
+          <ul class="texto-suave">
+            <li>Listado de accesos de mis vehículos</li>
+            <li>Accesos de mis visitas</li>
+            <li>Filtro por fecha</li>
+          </ul>
+        </section>
+
+        <section class="tarjeta">
+          <div class="placeholder">
+            <strong>Contenido pendiente</strong>
+            <span>Este módulo se implementará en las siguientes etapas.</span>
+          </div>
+        </section>
+    </main>
+  </div>
+
+  <script src="../../js/config.js"></script>
+  <script src="../../js/auth.js"></script>
+  <script src="../../js/api.js"></script>
+  <script src="../../js/layout.js"></script>
+  <script>
+    const usuario = iniciarPagina({ roles: ['propietario'], activo: 'historial', titulo: 'Historial de accesos' });
+    if (usuario) {
+      // TODO: cargar los datos de esta sección con api.get(...)
+    }
+  </script>
+</body>
+</html>

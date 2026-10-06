@@ -1,0 +1,10 @@
+# Sistema / editor
+.DS_Store
+Thumbs.db
+.vscode/
+
+# Netlify CLI
+.netlify/
+
+# Logs
+*.log
