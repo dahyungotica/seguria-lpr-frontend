@@ -6,7 +6,7 @@ Interfaz web de **SegurIA-LPR**, sistema de control de acceso vehicular por reco
 - **Hosting:** Netlify.
 - **Backend:** repositorio aparte → [seguria-lpr-backend](https://github.com/dahyungotica/seguria-lpr-backend).
 
-> Estado actual: login funcional con redirección por rol y protección de páginas. Las secciones del **administrador de plataforma** y del **administrador de recinto** están completas. Las del propietario y del guardia son esqueletos.
+> Estado actual: login con redirección por rol y las secciones de los cuatro roles completas.
 
 ## Secciones disponibles
 
@@ -18,7 +18,13 @@ Interfaz web de **SegurIA-LPR**, sistema de control de acceso vehicular por reco
 | Admin de recinto | Propietarios autorizados | Pestañas de propietarios (con sus patentes), guardias y unidades |
 | Admin de recinto | Cámaras y equipos | Gestionar cámaras y Raspberry Pi, con API key que se muestra una sola vez |
 | Admin de recinto | Historial de accesos | Filtros por fecha, patente, resultado, cámara y sentido; detalle con captura y zoom |
-| Admin de recinto | Notificación de cambios | Cambios de vehículos (antes → después), marcar como leídas, contador en el menú |
+| Admin de recinto | Notificación de cambios | Cambios de vehículos (antes → después), visitas programadas y accesos no autorizados; marcar como leídas, contador en el menú |
+| Propietario | Mis vehículos | Agregar, editar, activar/desactivar y eliminar vehículos sin aprobación (se notifica al admin) |
+| Propietario | Mis visitas | Programar visitas con horario y patente opcional, editarlas y cancelarlas |
+| Propietario | Historial de accesos | Solo los accesos de sus vehículos y visitas |
+| Guardia | Monitor en vivo | Captura siempre visible con zoom, detecciones en tiempo real, visitas de hoy y autorización manual con detalle obligatorio |
+| Guardia | Historial de accesos | Historial del recinto; puede autorizar desde el detalle un acceso denegado |
+| Guardia | Propietarios | Consulta de solo lectura: unidad, contacto y patentes |
 
 ## Estructura
 
@@ -44,7 +50,8 @@ seguria-lpr-frontend/
 │   ├── usuarios-form.js    # Formulario de usuario compartido
 │   ├── socket.js           # Cliente Socket.io (tiempo real)
 │   ├── login.js            # Lógica del formulario de login
-│   └── pages/              # Lógica de cada sección (plataforma-*.js, admin-*.js)
+│   ├── autorizacion.js     # Modal de autorización manual (guardia)
+│   └── pages/              # Lógica de cada sección (plataforma-*, admin-*, propietario-*, guardia-*, historial.js)
 ├── assets/                 # Logo e imágenes
 └── netlify.toml
 ```

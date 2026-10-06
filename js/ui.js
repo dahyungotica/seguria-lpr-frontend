@@ -45,6 +45,23 @@ function fechaHoyISO(desplazamientoDias = 0) {
   return fecha.toLocaleDateString('en-CA', { timeZone: ZONA_HORARIA });
 }
 
+// Fecha para un <input type="datetime-local"> (hora local del navegador): "2026-10-06T18:30"
+function fechaParaInput(fecha) {
+  const d = new Date(fecha);
+  const dosDigitos = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${dosDigitos(d.getMonth() + 1)}-${dosDigitos(d.getDate())}T${dosDigitos(d.getHours())}:${dosDigitos(d.getMinutes())}`;
+}
+
+// Valor de un datetime-local -> ISO en UTC para enviar al backend
+function fechaDesdeInput(valor) {
+  return valor ? new Date(valor).toISOString() : null;
+}
+
+// Hora corta "18:30"
+function formatearHora(iso) {
+  return new Date(iso).toLocaleTimeString('es-CL', { timeZone: ZONA_HORARIA, hour: '2-digit', minute: '2-digit' });
+}
+
 // "12345678-9" -> "12.345.678-9"
 function formatearRut(rut) {
   if (!rut) return '—';
@@ -79,6 +96,19 @@ const ESTADOS = {
 
 function badge(clave) {
   const [texto, tipo] = ESTADOS[clave] || [clave, ''];
+  return `<span class="badge${tipo ? ' badge-' + tipo : ''}">${escapar(texto)}</span>`;
+}
+
+// Estado de una visita (calculado por el backend en estado_actual)
+const ESTADOS_VISITA = {
+  programada: ['Programada', 'info'],
+  activa: ['En curso', 'exito'],
+  finalizada: ['Finalizada', ''],
+  cancelada: ['Cancelada', 'peligro'],
+};
+
+function badgeVisita(estado) {
+  const [texto, tipo] = ESTADOS_VISITA[estado] || [estado, ''];
   return `<span class="badge${tipo ? ' badge-' + tipo : ''}">${escapar(texto)}</span>`;
 }
 

@@ -1,10 +1,17 @@
 // =====================================================================
-// Admin de recinto > Historial de accesos: filtros, paginación y detalle
+// Historial de accesos (compartido por admin de recinto, guardia y propietario)
+// La página indica su rol en <body data-rol="...">:
+//   - admin_recinto: todo el recinto
+//   - guardia:       todo el recinto + autorizar manualmente accesos denegados
+//   - propietario:   solo los accesos de sus vehículos y visitas (sin filtro de cámara)
 // =====================================================================
 (function () {
-  const usuario = iniciarPagina({ roles: ['admin_recinto'], activo: 'historial', titulo: 'Historial de accesos' });
+  const rolPagina = document.body.dataset.rol;
+  const usuario = iniciarPagina({ roles: [rolPagina], activo: 'historial', titulo: 'Historial de accesos' });
   if (!usuario) return;
 
+  const esPropietario = usuario.rol === 'propietario';
+  const esGuardia = usuario.rol === 'guardia';
   const COLUMNAS = 7;
   const form = document.getElementById('form-filtros');
   const tbody = document.getElementById('tabla-accesos');
@@ -13,6 +20,10 @@
   let pagina = 1;
 
   async function cargarCamaras() {
+    if (esPropietario) {
+      document.getElementById('filtro-camara').closest('.campo').classList.add('oculto');
+      return;
+    }
     try {
       const camaras = await api.get('/camaras');
       document.getElementById('filtro-camara').innerHTML =
@@ -87,7 +98,7 @@
       ['Patente', patenteChip(a.patente_detectada)],
       ['Resultado', badge(a.resultado)],
       ['Cámara', `${escapar(a.camara_nombre)} (${a.sentido})`],
-      ['Confianza OCR', a.confianza_ocr != null ? escapar(a.confianza_ocr) + ' %' : '—'],
+      ['Confianza OCR', a.confianza_ocr != null ? escapar(Number(a.confianza_ocr).toFixed(1)) + ' %' : '—'],
       a.propietario_nombre && ['Propietario', escapar(a.propietario_nombre) + (a.unidad ? ' · ' + escapar(a.unidad) : '')],
       vehiculo && ['Vehículo', escapar(vehiculo)],
       a.nombre_visitante && ['Visitante', escapar(a.nombre_visitante)],
@@ -98,6 +109,8 @@
       ? `<div class="captura-detalle" id="captura" title="Clic para ampliar"><img src="${escapar(a.imagen_url)}" alt="Captura del vehículo ${escapar(a.patente_detectada)}" /></div>`
       : '<div class="captura-detalle"><div class="placeholder">Este acceso no tiene captura</div></div>';
 
+    const puedeAutorizar = esGuardia && a.resultado === 'denegado';
+
     const modal = abrirModal({
       titulo: 'Detalle del acceso',
       ancho: true,
@@ -107,7 +120,8 @@
           a.detalle_autorizacion
             ? `<div class="alerta alerta-aviso" style="margin-top:1rem"><strong>Motivo de la autorización manual:</strong><br>${escapar(a.detalle_autorizacion)}</div>`
             : ''
-        }`,
+        }
+        ${puedeAutorizar ? '<button type="button" class="btn btn-primario" id="btn-autorizar" style="margin-top:1rem">Autorizar ingreso</button>' : ''}`,
     });
 
     // Zoom: clic para ampliar, centrado en el punto donde se hizo clic
@@ -120,6 +134,13 @@
         contenedor.classList.toggle('ampliada');
       });
     }
+
+    if (puedeAutorizar) {
+      modal.elemento.querySelector('#btn-autorizar').addEventListener('click', () => {
+        modal.cerrar();
+        abrirAutorizacion(a, () => cargar());
+      });
+    }
   }
 
   // ---------- Eventos ----------
@@ -127,20 +148,22 @@
     pagina = 1;
     cargar();
   };
-  form.addEventListener('change', filtrar);
+  form.addEventListener('change', (e) => {
+    if (e.target.id !== 'filtro-patente') filtrar();
+  });
   document.getElementById('filtro-patente').addEventListener('input', conRetraso(filtrar));
   form.addEventListener('submit', (e) => e.preventDefault());
   form.addEventListener('reset', () => setTimeout(filtrar, 0));
 
-  tbody.addEventListener('click', (e) => {
+  function abrirDesde(e) {
     const fila = e.target.closest('tr[data-id]');
     if (fila) verDetalle(accesos.find((a) => a.id === Number(fila.dataset.id)));
-  });
+  }
+  tbody.addEventListener('click', abrirDesde);
   tbody.addEventListener('keydown', (e) => {
-    const fila = e.target.closest('tr[data-id]');
-    if (fila && (e.key === 'Enter' || e.key === ' ')) {
+    if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
-      verDetalle(accesos.find((a) => a.id === Number(fila.dataset.id)));
+      abrirDesde(e);
     }
   });
 
