@@ -6,7 +6,19 @@ Interfaz web de **SegurIA-LPR**, sistema de control de acceso vehicular por reco
 - **Hosting:** Netlify.
 - **Backend:** repositorio aparte → [seguria-lpr-backend](https://github.com/dahyungotica/seguria-lpr-backend).
 
-> Estado actual: login funcional con redirección por rol y protección de páginas. Las secciones internas son esqueletos.
+> Estado actual: login funcional con redirección por rol y protección de páginas. Las secciones del **administrador de plataforma** y del **administrador de recinto** están completas. Las del propietario y del guardia son esqueletos.
+
+## Secciones disponibles
+
+| Rol | Sección | Qué permite |
+|---|---|---|
+| Admin de plataforma | Recintos | Crear, editar, buscar y activar/desactivar recintos |
+| Admin de plataforma | Administradores | Crear y editar administradores de recinto, generar contraseña, filtrar por recinto |
+| Admin de recinto | Panel | Accesos de hoy, gráfico de 7 días, resumen del recinto, últimas detecciones en tiempo real y estado de equipos |
+| Admin de recinto | Propietarios autorizados | Pestañas de propietarios (con sus patentes), guardias y unidades |
+| Admin de recinto | Cámaras y equipos | Gestionar cámaras y Raspberry Pi, con API key que se muestra una sola vez |
+| Admin de recinto | Historial de accesos | Filtros por fecha, patente, resultado, cámara y sentido; detalle con captura y zoom |
+| Admin de recinto | Notificación de cambios | Cambios de vehículos (antes → después), marcar como leídas, contador en el menú |
 
 ## Estructura
 
@@ -21,14 +33,18 @@ seguria-lpr-frontend/
 ├── css/
 │   ├── base.css            # Variables de color y componentes comunes
 │   ├── login.css           # Pantalla de login
-│   └── layout.css          # Sidebar + header de páginas internas
+│   ├── layout.css          # Sidebar + header de páginas internas
+│   └── components.css      # Tablas, modales, badges, pestañas, indicadores, toasts
 ├── js/
 │   ├── config.js           # URL del backend según el ambiente
 │   ├── auth.js             # Sesión: login, logout, requireRole()
 │   ├── api.js              # fetch con token JWT (401 → vuelve al login)
 │   ├── layout.js           # Genera sidebar y header según el rol
+│   ├── ui.js               # Utilidades: modales, toasts, formato, paginación
+│   ├── usuarios-form.js    # Formulario de usuario compartido
 │   ├── socket.js           # Cliente Socket.io (tiempo real)
-│   └── login.js            # Lógica del formulario de login
+│   ├── login.js            # Lógica del formulario de login
+│   └── pages/              # Lógica de cada sección (plataforma-*.js, admin-*.js)
 ├── assets/                 # Logo e imágenes
 └── netlify.toml
 ```

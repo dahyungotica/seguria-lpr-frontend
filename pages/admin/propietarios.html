@@ -8,43 +8,80 @@
   <link rel="icon" href="../../assets/logo.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="../../css/base.css" />
   <link rel="stylesheet" href="../../css/layout.css" />
+  <link rel="stylesheet" href="../../css/components.css" />
 </head>
 <body class="app">
   <!-- El sidebar y el header los genera js/layout.js según el rol -->
   <div class="app-main">
     <main class="contenido">
-        <section class="tarjeta">
-          <h2>Propietarios autorizados <span class="etiqueta pendiente">En construcción</span></h2>
-          <p class="texto-suave">Gestiona los propietarios del recinto, sus unidades y vehículos.</p>
-        </section>
+      <section class="tarjeta">
+        <div class="pestanas" role="tablist" aria-label="Personas y unidades del recinto">
+          <button type="button" class="pestana" role="tab" id="tab-propietarios" aria-controls="panel-usuarios" data-tab="propietarios">Propietarios</button>
+          <button type="button" class="pestana" role="tab" id="tab-guardias" aria-controls="panel-usuarios" data-tab="guardias">Guardias</button>
+          <button type="button" class="pestana" role="tab" id="tab-unidades" aria-controls="panel-unidades" data-tab="unidades">Unidades</button>
+        </div>
 
-        <section class="tarjeta">
-          <h2>Funcionalidades previstas</h2>
-          <ul class="texto-suave">
-            <li>Listado de propietarios con su unidad y vehículos</li>
-            <li>Crear, editar y desactivar propietarios</li>
-            <li>Gestionar guardias del recinto</li>
-          </ul>
-        </section>
-
-        <section class="tarjeta">
-          <div class="placeholder">
-            <strong>Contenido pendiente</strong>
-            <span>Este módulo se implementará en las siguientes etapas.</span>
+        <!-- Propietarios y guardias comparten la misma tabla -->
+        <div id="panel-usuarios" role="tabpanel">
+          <div class="seccion-cabecera">
+            <div>
+              <h2 id="titulo-usuarios"></h2>
+              <p id="descripcion-usuarios"></p>
+            </div>
+            <button type="button" class="btn btn-primario" id="btn-nuevo-usuario"></button>
           </div>
-        </section>
+
+          <div class="barra-filtros">
+            <div class="campo campo-busqueda">
+              <label for="filtro-busqueda">Buscar</label>
+              <input class="input" type="search" id="filtro-busqueda" />
+            </div>
+            <div class="campo">
+              <label for="filtro-estado">Estado</label>
+              <select class="input" id="filtro-estado">
+                <option value="">Todos</option>
+                <option value="true">Activos</option>
+                <option value="false">Inactivos</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="tabla-contenedor">
+            <table class="tabla">
+              <thead id="cabecera-usuarios"></thead>
+              <tbody id="tabla-usuarios"></tbody>
+            </table>
+          </div>
+          <div class="paginacion" id="paginacion"></div>
+        </div>
+
+        <div id="panel-unidades" role="tabpanel" class="oculto">
+          <div class="seccion-cabecera">
+            <div>
+              <h2>Unidades del recinto</h2>
+              <p>Departamentos, casas u oficinas a los que se asignan los propietarios.</p>
+            </div>
+            <button type="button" class="btn btn-primario" id="btn-nueva-unidad">+ Nueva unidad</button>
+          </div>
+          <div class="tabla-contenedor">
+            <table class="tabla">
+              <thead>
+                <tr><th>Unidad</th><th>Tipo</th><th class="num">Propietarios</th><th>Estado</th><th><span class="sr-only">Acciones</span></th></tr>
+              </thead>
+              <tbody id="tabla-unidades"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
     </main>
   </div>
 
   <script src="../../js/config.js"></script>
   <script src="../../js/auth.js"></script>
   <script src="../../js/api.js"></script>
+  <script src="../../js/ui.js"></script>
   <script src="../../js/layout.js"></script>
-  <script>
-    const usuario = iniciarPagina({ roles: ['admin_recinto'], activo: 'propietarios', titulo: 'Propietarios autorizados' });
-    if (usuario) {
-      // TODO: cargar los datos de esta sección con api.get(...)
-    }
-  </script>
+  <script src="../../js/usuarios-form.js"></script>
+  <script src="../../js/pages/admin-propietarios.js"></script>
 </body>
 </html>
