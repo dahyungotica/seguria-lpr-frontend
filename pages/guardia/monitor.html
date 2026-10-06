@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0a1120" />
+  <title>Monitor en vivo · SegurIA-LPR</title>
+  <link rel="icon" href="../../assets/logo.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="../../css/base.css" />
+  <link rel="stylesheet" href="../../css/layout.css" />
+</head>
+<body class="app">
+  <!-- El sidebar y el header los genera js/layout.js según el rol -->
+  <div class="app-main">
+    <main class="contenido">
+        <div class="monitor">
+          <section class="tarjeta monitor-captura">
+            <div class="monitor-cabecera">
+              <h2 id="camara-nombre">Captura de la cámara</h2>
+              <span class="etiqueta" id="camara-sentido">—</span>
+            </div>
+
+            <!-- La captura siempre está visible; se puede ampliar con el zoom -->
+            <div class="captura" id="captura">
+              <img id="captura-imagen" class="oculto" alt="Última captura de la cámara" />
+              <div class="placeholder" id="captura-vacia">
+                <strong>Esperando detección…</strong>
+                <span>La captura aparecerá aquí en tiempo real.</span>
+              </div>
+            </div>
+
+            <div class="zoom-control">
+              <label for="zoom">Zoom</label>
+              <input type="range" id="zoom" min="1" max="4" step="0.5" value="1" />
+              <span id="zoom-valor">1x</span>
+            </div>
+          </section>
+
+          <section class="tarjeta">
+            <h2>Última detección</h2>
+            <dl class="deteccion">
+              <dt>Patente</dt><dd class="patente" id="det-patente">—</dd>
+              <dt>Resultado</dt><dd id="det-resultado">—</dd>
+              <dt>Confianza OCR</dt><dd id="det-confianza">—</dd>
+              <dt>Fecha y hora</dt><dd id="det-hora">—</dd>
+            </dl>
+
+            <!-- Pendiente: al autorizar un ingreso no autorizado el detalle es obligatorio -->
+            <div class="campo">
+              <label for="detalle">Detalle de la autorización (obligatorio)</label>
+              <textarea class="input" id="detalle" rows="3" disabled
+                        placeholder="Ej: Proveedor confirmado por teléfono con el Depto 304"></textarea>
+            </div>
+            <button class="btn btn-primario" type="button" disabled>Autorizar ingreso</button>
+            <span class="etiqueta pendiente">En construcción</span>
+          </section>
+        </div>
+    </main>
+  </div>
+
+  <script src="../../js/config.js"></script>
+  <script src="../../js/auth.js"></script>
+  <script src="../../js/api.js"></script>
+  <script src="../../js/layout.js"></script>
+  <script src="https://cdn.socket.io/4.8.1/socket.io.min.js" crossorigin="anonymous"></script>
+  <script src="../../js/socket.js"></script>
+  <script>
+    const usuario = iniciarPagina({ roles: ['guardia'], activo: 'monitor', titulo: 'Monitor en vivo' });
+    if (usuario) {
+      // TODO: cargar los datos de esta sección con api.get(...)
+
+      const socket = conectarSocket();
+
+      // Zoom de la captura
+      const imagen = document.getElementById('captura-imagen');
+      const zoom = document.getElementById('zoom');
+      zoom.addEventListener('input', () => {
+        imagen.style.transform = 'scale(' + zoom.value + ')';
+        document.getElementById('zoom-valor').textContent = zoom.value + 'x';
+      });
+      // Clic en la imagen: centra el zoom en ese punto
+      document.getElementById('captura').addEventListener('click', (e) => {
+        const caja = e.currentTarget.getBoundingClientRect();
+        const x = ((e.clientX - caja.left) / caja.width) * 100;
+        const y = ((e.clientY - caja.top) / caja.height) * 100;
+        imagen.style.transformOrigin = x + '% ' + y + '%';
+      });
+
+      // Nueva detección enviada por el servidor
+      if (socket) {
+        socket.on('acceso:nuevo', (acceso) => {
+          if (acceso.imagen_url) {
+            imagen.src = acceso.imagen_url;
+            imagen.classList.remove('oculto');
+            document.getElementById('captura-vacia').classList.add('oculto');
+          }
+          document.getElementById('det-patente').textContent = acceso.patente_detectada || '—';
+          document.getElementById('det-resultado').textContent = acceso.resultado || '—';
+          document.getElementById('det-confianza').textContent =
+            acceso.confianza_ocr != null ? acceso.confianza_ocr + ' %' : '—';
+          document.getElementById('det-hora').textContent =
+            new Date(acceso.fecha_hora || Date.now()).toLocaleString('es-CL');
+          if (acceso.sentido) document.getElementById('camara-sentido').textContent = acceso.sentido;
+        });
+      }
+    }
+  </script>
+</body>
+</html>

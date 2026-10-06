@@ -1,0 +1,201 @@
+/* =====================================================================
+   SegurIA-LPR - Estilos base: variables de color, tipografía y componentes comunes
+   ===================================================================== */
+
+:root {
+  /* Fondos */
+  --color-fondo: #0a1120;
+  --color-superficie: #111b2e;
+  --color-superficie-2: #17233b;
+  --color-borde: #24324f;
+
+  /* Texto */
+  --color-texto: #e6ecf5;
+  --color-texto-suave: #9aa8c1;
+  --color-texto-tenue: #6b7a96;
+
+  /* Marca y estados */
+  --color-primario: #2f7cf6;
+  --color-primario-hover: #1d66db;
+  --color-primario-suave: rgba(47, 124, 246, 0.14);
+  --color-exito: #22c55e;
+  --color-alerta: #f5a524;
+  --color-peligro: #ef4444;
+  --color-peligro-suave: rgba(239, 68, 68, 0.12);
+
+  /* Medidas */
+  --radio: 10px;
+  --radio-sm: 6px;
+  --sombra: 0 10px 30px rgba(0, 0, 0, 0.35);
+  --fuente: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --fuente-mono: ui-monospace, "Cascadia Mono", "Consolas", monospace;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--fuente);
+  font-size: 15px;
+  line-height: 1.5;
+  background: var(--color-fondo);
+  color: var(--color-texto);
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: var(--color-primario);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+h1, h2, h3 {
+  line-height: 1.25;
+  margin: 0 0 0.5rem;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-primario);
+  outline-offset: 2px;
+}
+
+/* ---------- Botones ---------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1.1rem;
+  border: 1px solid transparent;
+  border-radius: var(--radio-sm);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s, border-color 0.15s, opacity 0.15s;
+}
+
+.btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.btn-primario {
+  background: var(--color-primario);
+  color: #fff;
+}
+
+.btn-primario:hover:not(:disabled) {
+  background: var(--color-primario-hover);
+}
+
+.btn-secundario {
+  background: transparent;
+  color: var(--color-texto);
+  border-color: var(--color-borde);
+}
+
+.btn-secundario:hover:not(:disabled) {
+  background: var(--color-superficie-2);
+}
+
+/* Spinner para estados de carga */
+.spinner {
+  width: 1em;
+  height: 1em;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: girar 0.7s linear infinite;
+}
+
+@keyframes girar {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---------- Formularios ---------- */
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+}
+
+.campo label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-texto-suave);
+}
+
+.input {
+  width: 100%;
+  padding: 0.7rem 0.85rem;
+  background: var(--color-fondo);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-sm);
+  color: var(--color-texto);
+  font: inherit;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.input::placeholder {
+  color: var(--color-texto-tenue);
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--color-primario);
+  box-shadow: 0 0 0 3px var(--color-primario-suave);
+}
+
+.input.invalido {
+  border-color: var(--color-peligro);
+}
+
+.texto-error-campo {
+  font-size: 0.8rem;
+  color: var(--color-peligro);
+  min-height: 1em;
+}
+
+/* ---------- Alertas ---------- */
+.alerta {
+  padding: 0.75rem 0.9rem;
+  border-radius: var(--radio-sm);
+  font-size: 0.9rem;
+}
+
+.alerta-error {
+  background: var(--color-peligro-suave);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #fecaca;
+}
+
+.oculto {
+  display: none !important;
+}
+
+/* Solo para lectores de pantalla */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
