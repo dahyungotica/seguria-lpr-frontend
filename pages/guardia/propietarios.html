@@ -8,43 +8,51 @@
   <link rel="icon" href="../../assets/logo.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="../../css/base.css" />
   <link rel="stylesheet" href="../../css/layout.css" />
+  <link rel="stylesheet" href="../../css/components.css" />
 </head>
 <body class="app">
   <!-- El sidebar y el header los genera js/layout.js según el rol -->
   <div class="app-main">
     <main class="contenido">
-        <section class="tarjeta">
-          <h2>Propietarios <span class="etiqueta pendiente">En construcción</span></h2>
-          <p class="texto-suave">Consulta de propietarios, unidades y vehículos del recinto (solo lectura).</p>
-        </section>
-
-        <section class="tarjeta">
-          <h2>Funcionalidades previstas</h2>
-          <ul class="texto-suave">
-            <li>Buscar por nombre, unidad o patente</li>
-            <li>Ver datos de contacto del propietario</li>
-            <li>Ver vehículos autorizados</li>
-          </ul>
-        </section>
-
-        <section class="tarjeta">
-          <div class="placeholder">
-            <strong>Contenido pendiente</strong>
-            <span>Este módulo se implementará en las siguientes etapas.</span>
+      <section class="tarjeta">
+        <div class="seccion-cabecera">
+          <div>
+            <h2>Propietarios del recinto</h2>
+            <p>Consulta de residentes, sus unidades y vehículos autorizados (solo lectura).</p>
           </div>
-        </section>
+        </div>
+
+        <div class="barra-filtros">
+          <div class="campo campo-busqueda">
+            <label for="filtro-busqueda">Buscar</label>
+            <input class="input" type="search" id="filtro-busqueda" placeholder="Nombre, unidad, RUT o patente" autocomplete="off" />
+          </div>
+        </div>
+
+        <div class="tabla-contenedor">
+          <table class="tabla">
+            <thead>
+              <tr>
+                <th>Propietario</th>
+                <th>Unidad</th>
+                <th>Contacto</th>
+                <th>Vehículos</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody id="tabla-propietarios"></tbody>
+          </table>
+        </div>
+        <div class="paginacion" id="paginacion"></div>
+      </section>
     </main>
   </div>
 
   <script src="../../js/config.js"></script>
   <script src="../../js/auth.js"></script>
   <script src="../../js/api.js"></script>
+  <script src="../../js/ui.js"></script>
   <script src="../../js/layout.js"></script>
-  <script>
-    const usuario = iniciarPagina({ roles: ['guardia'], activo: 'propietarios', titulo: 'Propietarios' });
-    if (usuario) {
-      // TODO: cargar los datos de esta sección con api.get(...)
-    }
-  </script>
+  <script src="../../js/pages/guardia-propietarios.js"></script>
 </body>
 </html>

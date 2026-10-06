@@ -23,7 +23,18 @@
   const ICONOS_EXTRA = {
     alerta: '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0zM12 9v4M12 17h.01"/>',
   };
-  const NOMBRES_CAMPO = { patente: 'Patente', marca: 'Marca', modelo: 'Modelo', color: 'Color', tipo: 'Tipo', activo: 'Activo', camara: 'Cámara' };
+  const NOMBRES_CAMPO = {
+    patente: 'Patente', marca: 'Marca', modelo: 'Modelo', color: 'Color', tipo: 'Tipo', activo: 'Activo',
+    camara: 'Cámara', visitante: 'Visitante', desde: 'Desde', hasta: 'Hasta',
+  };
+
+  // Valores legibles: fechas en formato chileno, booleanos como Sí/No
+  function valorLegible(campo, valor) {
+    if (valor === null || valor === undefined || valor === '') return '—';
+    if (campo === 'desde' || campo === 'hasta') return formatearFecha(valor);
+    if (typeof valor === 'boolean') return valor ? 'Sí' : 'No';
+    return valor;
+  }
 
   function iconoNotificacion(tipo) {
     const [nombre, clase] = TIPOS[tipo] || ['campana', ''];
@@ -44,11 +55,14 @@
         const a = antes[campo];
         const d = despues[campo];
         const nombre = escapar(NOMBRES_CAMPO[campo] || campo);
-        if (n.datos_anteriores && a !== d) {
-          return `<tr><th>${nombre}</th><td class="antes">${escapar(a ?? '—')}</td><td class="despues">${escapar(d ?? '—')}</td></tr>`;
+        // Edición: solo los campos que cambiaron (antes -> después)
+        if (n.datos_anteriores && n.datos_nuevos) {
+          return a !== d
+            ? `<tr><th>${nombre}</th><td class="antes">${escapar(valorLegible(campo, a))}</td><td class="despues">${escapar(valorLegible(campo, d))}</td></tr>`
+            : '';
         }
-        if (!n.datos_anteriores) return `<tr><th>${nombre}</th><td>${escapar(d)}</td></tr>`;
-        return '';
+        // Creación o eliminación: todos los datos
+        return `<tr><th>${nombre}</th><td>${escapar(valorLegible(campo, d ?? a))}</td></tr>`;
       })
       .join('');
     return filas ? `<table class="cambios"><caption class="sr-only">Cambios</caption>${filas}</table>` : '';

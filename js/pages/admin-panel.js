@@ -169,6 +169,12 @@
         dibujarGrafico(e.ultimos_dias);
       }).catch(() => {});
     });
+    // Un guardia autorizó manualmente un acceso
+    socket.on('acceso:actualizado', (acceso) => {
+      ultimos = ultimos.map((a) => (a.id === acceso.id ? acceso : a));
+      dibujarUltimos();
+      api.get('/accesos/estadisticas').then((e) => dibujarIndicadores(e.hoy)).catch(() => {});
+    });
     socket.on('notificacion:nueva', (n) => {
       toast(n.mensaje || 'Nueva notificación');
       cargarContadorNotificaciones();

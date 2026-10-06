@@ -8,43 +8,30 @@
   <link rel="icon" href="../../assets/logo.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="../../css/base.css" />
   <link rel="stylesheet" href="../../css/layout.css" />
+  <link rel="stylesheet" href="../../css/components.css" />
 </head>
 <body class="app">
   <!-- El sidebar y el header los genera js/layout.js según el rol -->
   <div class="app-main">
     <main class="contenido">
-        <section class="tarjeta">
-          <h2>Mis vehículos <span class="etiqueta pendiente">En construcción</span></h2>
-          <p class="texto-suave">Registra y edita tus vehículos. Los cambios se aplican de inmediato y se notifican al administrador.</p>
-        </section>
-
-        <section class="tarjeta">
-          <h2>Funcionalidades previstas</h2>
-          <ul class="texto-suave">
-            <li>Listado de mis vehículos</li>
-            <li>Agregar, editar o eliminar un vehículo</li>
-            <li>Activar o desactivar un vehículo</li>
-          </ul>
-        </section>
-
-        <section class="tarjeta">
-          <div class="placeholder">
-            <strong>Contenido pendiente</strong>
-            <span>Este módulo se implementará en las siguientes etapas.</span>
+      <section class="tarjeta">
+        <div class="seccion-cabecera">
+          <div>
+            <h2>Mis vehículos</h2>
+            <p>Los vehículos activos ingresan automáticamente al recinto. Los cambios se aplican de inmediato y se informan al administrador.</p>
           </div>
-        </section>
+          <button type="button" class="btn btn-primario" id="btn-nuevo">+ Agregar vehículo</button>
+        </div>
+        <div class="grilla-vehiculos" id="lista-vehiculos" aria-live="polite"></div>
+      </section>
     </main>
   </div>
 
   <script src="../../js/config.js"></script>
   <script src="../../js/auth.js"></script>
   <script src="../../js/api.js"></script>
+  <script src="../../js/ui.js"></script>
   <script src="../../js/layout.js"></script>
-  <script>
-    const usuario = iniciarPagina({ roles: ['propietario'], activo: 'vehiculos', titulo: 'Mis vehículos' });
-    if (usuario) {
-      // TODO: cargar los datos de esta sección con api.get(...)
-    }
-  </script>
+  <script src="../../js/pages/propietario-vehiculos.js"></script>
 </body>
 </html>
