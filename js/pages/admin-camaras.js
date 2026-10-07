@@ -1,5 +1,9 @@
 // =====================================================================
 // Admin de recinto > Cámaras y equipos (Raspberry Pi)
+//
+// Relación 1 a 1: cada cámara funciona con su propia Raspberry Pi. Se puede
+// registrar una sin la otra; mientras no tenga pareja queda "pendiente de
+// asignación" y no se usa (no registra accesos ni aparece en el monitor).
 // =====================================================================
 (function () {
   const usuario = iniciarPagina({ roles: ['admin_recinto'], activo: 'camaras', titulo: 'Cámaras y equipos' });
@@ -38,7 +42,7 @@
           <td>${escapar(d.ip || '—')}</td>
           <td title="${escapar(formatearFecha(d.ultimo_heartbeat))}">${escapar(tiempoRelativo(d.ultimo_heartbeat))}</td>
           <td title="${escapar(formatearFecha(d.ultima_sincronizacion))}">${escapar(tiempoRelativo(d.ultima_sincronizacion))}</td>
-          <td class="num">${d.total_camaras}</td>
+          <td>${d.camara_id ? escapar(d.camara_nombre) : badge('pendiente')}</td>
           <td>${badge(d.estado)}</td>
           <td class="acciones">
             <button type="button" class="btn-texto" data-accion="editar" data-id="${d.id}">Editar</button>
@@ -79,7 +83,7 @@
         ${campoHtml({ nombre: 'ip', etiqueta: 'IP', valor: d && d.ip, atributos: 'placeholder="192.168.1.50"' })}
         ${edicion ? campoHtml({ nombre: 'estado', etiqueta: 'Estado', valor: d.estado, opciones: [['activo', 'Activo'], ['inactivo', 'Inactivo'], ['sin_conexion', 'Sin conexión']] }) : ''}
       </div>
-      ${edicion ? '' : '<div class="alerta alerta-info">Al crearlo se generará una API key para que el equipo se conecte al sistema.</div>'}`,
+      ${edicion ? '' : '<div class="alerta alerta-info">Al crearlo se generará una API key para que el equipo se conecte al sistema. Después asígnale su cámara desde la tabla de cámaras.</div>'}`,
       textoEnviar: edicion ? 'Guardar cambios' : 'Crear equipo',
       alEnviar: async (datos) => {
         if (edicion) {
@@ -114,7 +118,7 @@
   async function eliminarDispositivo(d) {
     const ok = await confirmar({
       titulo: 'Eliminar equipo',
-      mensaje: `¿Eliminar "${d.nombre}"? Sus cámaras quedarán sin equipo asignado. El historial de accesos se conserva.`,
+      mensaje: `¿Eliminar "${d.nombre}"?${d.camara_id ? ` La cámara "${d.camara_nombre}" quedará pendiente de asignación y dejará de funcionar.` : ''} El historial de accesos se conserva.`,
       textoConfirmar: 'Eliminar',
       peligro: true,
     });
@@ -137,14 +141,17 @@
     tbodyCamaras.innerHTML = camaras
       .map(
         (c) => `
-        <tr>
+        <tr class="${c.asignada ? '' : 'pendiente-asignacion'}">
           <td><span class="principal">${escapar(c.nombre)}</span>
               <span class="secundario">${escapar(c.ubicacion || '')}</span></td>
           <td>${c.sentido === 'entrada' ? 'Entrada' : 'Salida'}</td>
           <td>${escapar(c.ip || '—')}</td>
-          <td>${escapar(c.dispositivo_nombre || 'Sin equipo')}</td>
-          <td>${badge(c.estado)}</td>
+          <td>${c.asignada
+            ? `<span class="principal">${escapar(c.dispositivo_nombre)}</span><span class="secundario">${escapar(c.dispositivo_identificador)}</span>`
+            : '<span class="texto-suave">Sin equipo</span>'}</td>
+          <td>${c.asignada ? badge(c.estado) : badge('pendiente')}</td>
           <td class="acciones">
+            ${c.asignada ? '' : `<button type="button" class="btn-texto" data-accion="editar-camara" data-id="${c.id}">Asignar equipo</button>`}
             <button type="button" class="btn-texto" data-accion="editar-camara" data-id="${c.id}">Editar</button>
             <button type="button" class="btn-texto peligro" data-accion="eliminar-camara" data-id="${c.id}">Eliminar</button>
           </td>
@@ -155,7 +162,15 @@
 
   function abrirFormularioCamara(c) {
     const edicion = Boolean(c);
-    const opcionesEquipo = [['', 'Sin equipo'], ...dispositivos.map((d) => [d.id, d.nombre])];
+    // Solo equipos libres (1 a 1) más el que ya tiene esta cámara
+    const libres = dispositivos.filter((d) => !d.camara_id || (c && d.camara_id === c.id));
+    const opcionesEquipo = [
+      ['', 'Sin equipo (queda pendiente de asignación)'],
+      ...libres.map((d) => [d.id, `${d.nombre} · ${d.identificador}`]),
+    ];
+    const ayudaEquipo = libres.length
+      ? 'Cada Raspberry Pi atiende una sola cámara. Sin equipo, la cámara no se usa ni aparece en el monitor.'
+      : 'No hay equipos libres: crea una Raspberry Pi arriba. Mientras tanto la cámara quedará pendiente de asignación.';
     abrirModal({
       titulo: edicion ? 'Editar cámara' : 'Nueva cámara',
       cuerpo: `<div class="form-grid">
@@ -164,14 +179,17 @@
         ${campoHtml({ nombre: 'estado', etiqueta: 'Estado', valor: (c && c.estado) || 'activa', opciones: [['activa', 'Activa'], ['inactiva', 'Inactiva'], ['falla', 'Falla']] })}
         ${campoHtml({ nombre: 'ubicacion', etiqueta: 'Ubicación', valor: c && c.ubicacion, completo: true, atributos: 'maxlength="120" placeholder="Ej: Acceso vehicular norte"' })}
         ${campoHtml({ nombre: 'ip', etiqueta: 'IP', valor: c && c.ip, atributos: 'placeholder="192.168.1.60"' })}
-        ${campoHtml({ nombre: 'dispositivo_id', etiqueta: 'Equipo', valor: c && c.dispositivo_id, opciones: opcionesEquipo, atributos: 'data-tipo="numero"' })}
+        ${campoHtml({ nombre: 'dispositivo_id', etiqueta: 'Raspberry Pi', valor: c && c.dispositivo_id, opciones: opcionesEquipo, completo: true, ayuda: ayudaEquipo, atributos: 'data-tipo="numero"' })}
         ${campoHtml({ nombre: 'url_stream', etiqueta: 'URL del stream', valor: c && c.url_stream, completo: true, atributos: 'maxlength="300" placeholder="rtsp://192.168.1.60:554/stream1"' })}
       </div>`,
       textoEnviar: edicion ? 'Guardar cambios' : 'Crear cámara',
       alEnviar: async (datos) => {
-        if (edicion) await api.put('/camaras/' + c.id, datos);
-        else await api.post('/camaras', datos);
-        toast(edicion ? 'Cámara actualizada' : 'Cámara creada', 'exito');
+        const guardada = edicion ? await api.put('/camaras/' + c.id, datos) : await api.post('/camaras', datos);
+        toast(
+          (edicion ? 'Cámara actualizada' : 'Cámara creada') +
+            (guardada.asignada ? '' : ': queda pendiente de asignación hasta que le asignes una Raspberry Pi'),
+          guardada.asignada ? 'exito' : 'info'
+        );
         cargar();
       },
     });

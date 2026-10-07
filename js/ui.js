@@ -89,6 +89,8 @@ const ESTADOS = {
   activa: ['Activa', 'exito'],
   inactiva: ['Inactiva', ''],
   falla: ['Falla', 'peligro'],
+  // Cámara sin Raspberry Pi (o equipo sin cámara): registrado, pero no se puede usar
+  pendiente: ['Pendiente de asignación', 'alerta'],
   activo: ['Activo', 'exito'],
   inactivo: ['Inactivo', ''],
   sin_conexion: ['Sin conexión', 'peligro'],

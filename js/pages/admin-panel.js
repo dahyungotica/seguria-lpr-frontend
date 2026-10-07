@@ -116,17 +116,20 @@
   }
 
   // ---------- Equipos ----------
+  // Cada cámara funciona con su Raspberry Pi (1 a 1); lo que no tiene pareja queda pendiente de asignación
   function dibujarEquipos(camaras, dispositivos) {
     const items = [
-      ...dispositivos.map(
-        (d) => `<li><span><span class="principal">${escapar(d.nombre)}</span>
-          <span class="secundario">Raspberry Pi · ${
-            d.ultimo_heartbeat ? 'última señal ' + escapar(tiempoRelativo(d.ultimo_heartbeat)) : 'sin señal registrada'
-          }</span></span>${badge(d.estado)}</li>`
-      ),
       ...camaras.map(
         (c) => `<li><span><span class="principal">${escapar(c.nombre)}</span>
-          <span class="secundario">Cámara de ${escapar(c.sentido)}${c.ubicacion ? ' · ' + escapar(c.ubicacion) : ''}</span></span>${badge(c.estado)}</li>`
+          <span class="secundario">Cámara de ${escapar(c.sentido)} · ${
+            c.asignada ? 'equipo ' + escapar(c.dispositivo_nombre) : 'sin Raspberry Pi asignada'
+          }</span></span>${badge(c.asignada ? c.estado : 'pendiente')}</li>`
+      ),
+      ...dispositivos.map(
+        (d) => `<li><span><span class="principal">${escapar(d.nombre)}</span>
+          <span class="secundario">Raspberry Pi · ${d.camara_id ? 'cámara ' + escapar(d.camara_nombre) + ' · ' : 'sin cámara · '}${
+            d.ultimo_heartbeat ? 'última señal ' + escapar(tiempoRelativo(d.ultimo_heartbeat)) : 'sin señal registrada'
+          }</span></span>${badge(d.camara_id ? d.estado : 'pendiente')}</li>`
       ),
     ];
     document.getElementById('estado-equipos').innerHTML =
