@@ -117,36 +117,67 @@
   color: var(--color-texto-tenue);
 }
 
-/* Elección de recinto */
+/* Elección de perfil: un recinto por tarjeta y un botón por rol (igual que en layout.css) */
 .lista-recintos {
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
 }
 
-.opcion-recinto {
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-  width: 100%;
-  padding: 0.85rem 1rem;
+.perfil-recinto {
+  padding: 0.8rem 0.9rem;
   border: 1px solid var(--color-borde);
   border-radius: var(--radio-sm);
   background: var(--color-fondo);
+}
+
+.perfil-recinto-nombre {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.4rem;
+  margin-bottom: 0.55rem;
+}
+
+.perfil-recinto-nombre span {
+  font-size: 0.82rem;
+  color: var(--color-texto-suave);
+}
+
+.perfil-roles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.opcion-rol {
+  padding: 0.5rem 0.85rem;
+  border: 1px solid var(--color-borde);
+  border-radius: 999px;
+  background: var(--color-superficie, transparent);
   color: var(--color-texto);
   font: inherit;
-  text-align: left;
+  font-size: 0.9rem;
+  font-weight: 600;
   cursor: pointer;
   transition: border-color 0.15s, background-color 0.15s;
 }
 
-.opcion-recinto:hover:not(:disabled),
-.opcion-recinto:focus-visible {
+.opcion-rol:hover:not(:disabled),
+.opcion-rol:focus-visible {
   border-color: var(--color-primario);
   background: var(--color-primario-suave);
+  color: var(--color-primario);
 }
 
-.opcion-recinto span {
-  font-size: 0.82rem;
-  color: var(--color-texto-suave);
+.opcion-rol.actual {
+  border-color: var(--color-primario);
+  background: var(--color-primario-suave);
+  color: var(--color-primario);
+  cursor: default;
+}
+
+.opcion-rol.actual::after {
+  content: ' · actual';
+  font-weight: 400;
 }

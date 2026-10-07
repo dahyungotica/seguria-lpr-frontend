@@ -1,5 +1,6 @@
 // =====================================================================
 // Admin de plataforma > Administradores de recinto
+// Cada fila es una persona; en el formulario se marcan todos los recintos a su cargo.
 // =====================================================================
 (function () {
   const usuario = iniciarPagina({ roles: ['admin_plataforma'], activo: 'administradores', titulo: 'Administradores de recinto' });
@@ -12,16 +13,16 @@
   const filtroRecinto = document.getElementById('filtro-recinto');
   const filtroEstado = document.getElementById('filtro-estado');
 
-  let recintos = [];
+  let opciones = { roles: ['admin_recinto'], recintos: [] };
   let administradores = [];
   let pagina = 1;
 
   async function cargarRecintos() {
     try {
-      recintos = await api.get('/recintos');
+      opciones = await api.get('/usuarios/opciones');
       filtroRecinto.innerHTML =
         '<option value="">Todos</option>' +
-        recintos.map((r) => `<option value="${r.id}">${escapar(r.nombre)}</option>`).join('');
+        opciones.recintos.map((r) => `<option value="${r.id}">${escapar(r.nombre)}</option>`).join('');
     } catch (error) {
       toast('No se pudieron cargar los recintos: ' + error.message, 'error');
     }
@@ -51,6 +52,13 @@
     }
   }
 
+  // Recintos a cargo (los desactivados se ven en gris)
+  function recintosHtml(a) {
+    return `<div class="chips-roles">${a.vinculos
+      .map((v) => `<span class="chip-rol chip-admin_recinto${v.activo ? '' : ' inactivo'}" title="${v.activo ? '' : 'Desactivado en este recinto'}">${escapar(v.recinto_nombre)}</span>`)
+      .join('')}</div>`;
+  }
+
   function dibujar() {
     if (administradores.length === 0) {
       filaEstado(tbody, COLUMNAS, 'No hay administradores que coincidan con la búsqueda.');
@@ -63,12 +71,12 @@
           <td><span class="principal">${escapar(a.nombre + ' ' + a.apellido)}</span>
               <span class="secundario">${escapar(a.email)}${a.telefono ? ' · ' + escapar(a.telefono) : ''}</span></td>
           <td>${escapar(formatearRut(a.rut))}</td>
-          <td>${escapar(a.recinto_nombre || '—')}</td>
+          <td>${recintosHtml(a)}</td>
           <td title="${escapar(formatearFecha(a.ultimo_login))}">${escapar(tiempoRelativo(a.ultimo_login))}</td>
           <td>${badgeActivo(a.activo)}</td>
           <td class="acciones">
-            <button type="button" class="btn-texto" data-editar="${a.vinculo_id}">Editar</button>
-            <button type="button" class="btn-texto${a.activo ? ' peligro' : ''}" data-estado="${a.vinculo_id}">
+            <button type="button" class="btn-texto" data-editar="${a.id}">Editar</button>
+            <button type="button" class="btn-texto${a.activo ? ' peligro' : ''}" data-estado="${a.id}">
               ${a.activo ? 'Desactivar' : 'Activar'}</button>
           </td>
         </tr>`
@@ -76,42 +84,40 @@
       .join('');
   }
 
-  function selectRecinto(valor) {
-    // Al editar se muestran todos; al crear, solo los activos
-    const opciones = [['', 'Selecciona un recinto…']].concat(
-      recintos
-        .filter((r) => r.activo || r.id === valor)
-        .map((r) => [r.id, r.nombre + (r.activo ? '' : ' (inactivo)')])
-    );
-    return campoHtml({
-      nombre: 'recinto_id', etiqueta: 'Recinto', valor, opciones, requerido: true, completo: true,
-      atributos: 'data-tipo="numero"',
-    });
-  }
-
   function abrirFormulario(admin) {
     const edicion = Boolean(admin);
-    if (!edicion && recintos.filter((r) => r.activo).length === 0) {
+    if (!edicion && opciones.recintos.filter((r) => r.activo).length === 0) {
       toast('Primero crea un recinto activo.', 'error');
       return;
     }
     const modal = abrirModal({
       titulo: edicion ? 'Editar administrador' : 'Nuevo administrador de recinto',
-      cuerpo: formularioUsuarioHtml(admin, { edicion, extras: selectRecinto(admin && admin.recinto_id) }),
+      ancho: true,
+      cuerpo:
+        formularioUsuarioHtml(admin, { edicion }) +
+        `<div class="form-grid">${seccionRolesHtml(opciones, { vinculos: edicion ? admin.vinculos : [] })}</div>`,
       textoEnviar: edicion ? 'Guardar cambios' : 'Crear administrador',
-      alEnviar: async (datos) => {
+      alEnviar: async (datos, form) => {
+        datos.roles = leerRoles(form);
+        if (datos.roles.length === 0) {
+          throw new Error(edicion
+            ? 'Marca al menos un recinto. Si ya no administra ninguno, usa "Desactivar".'
+            : 'Marca al menos un recinto a su cargo.');
+        }
         if (edicion) {
           if (!datos.password) delete datos.password;
-          await api.put('/usuarios/' + admin.id, { ...datos, vinculo_id: admin.vinculo_id });
+          await api.put('/usuarios/' + admin.id, datos);
+          toast('Administrador actualizado', 'exito');
         } else {
-          const creado = await api.post('/usuarios', { ...datos, rol: 'admin_recinto' });
-          if (creado.vinculado) {
-            toast(`${creado.nombre} ${creado.apellido} ya tenía cuenta: se vinculó a ${creado.recinto_nombre}`, 'exito');
-            cargar();
-            return;
-          }
+          const creado = await api.post('/usuarios', datos);
+          // Si la persona ya tenía cuenta (ej. es propietaria en un recinto), solo se le agrega el rol
+          toast(
+            creado.vinculado
+              ? `${creado.nombre} ${creado.apellido} ya tenía cuenta: ahora también administra los recintos marcados`
+              : 'Administrador creado',
+            'exito'
+          );
         }
-        toast(edicion ? 'Administrador actualizado' : 'Administrador creado', 'exito');
         cargar();
       },
     });
@@ -123,14 +129,16 @@
     const nombre = admin.nombre + ' ' + admin.apellido;
     const ok = await confirmar({
       titulo: activar ? 'Activar administrador' : 'Desactivar administrador',
-      mensaje: activar ? `¿Activar la cuenta de ${nombre}?` : `¿Desactivar la cuenta de ${nombre}? No podrá iniciar sesión.`,
+      mensaje: activar
+        ? `¿Activar a ${nombre} como administrador de todos sus recintos?`
+        : `¿Desactivar a ${nombre} como administrador de todos sus recintos? Si también es guardia o propietario, esos perfiles no cambian.`,
       textoConfirmar: activar ? 'Activar' : 'Desactivar',
       peligro: !activar,
     });
     if (!ok) return;
     try {
-      await api.patch(`/usuarios/${admin.id}/estado`, { activo: activar, vinculo_id: admin.vinculo_id });
-      toast(activar ? 'Cuenta activada' : 'Cuenta desactivada', 'exito');
+      await api.patch(`/usuarios/${admin.id}/estado`, { activo: activar });
+      toast(activar ? 'Administrador activado' : 'Administrador desactivado', 'exito');
       cargar();
     } catch (error) {
       toast(error.message, 'error');
@@ -151,9 +159,7 @@
   tbody.addEventListener('click', (e) => {
     const boton = e.target.closest('button');
     if (!boton) return;
-    const id = Number(boton.dataset.editar || boton.dataset.estado);
-    // Cada fila es un vínculo administrador-recinto (un admin puede estar en varios recintos)
-    const admin = administradores.find((a) => a.vinculo_id === id);
+    const admin = administradores.find((a) => a.id === Number(boton.dataset.editar || boton.dataset.estado));
     if (boton.dataset.editar) abrirFormulario(admin);
     else if (boton.dataset.estado) cambiarEstado(admin);
   });

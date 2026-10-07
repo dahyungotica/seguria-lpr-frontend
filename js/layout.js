@@ -20,7 +20,11 @@ const ICONOS = {
   menu: '<path d="M3 6h18M3 12h18M3 18h18"/>',
   auditoria: '<path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h4"/>',
   cambiar: '<path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>',
+  perfil: '<circle cx="12" cy="8" r="4"/><path d="M4 21v-1a7 7 0 0 1 7-7h2a7 7 0 0 1 7 7v1"/>',
 };
+
+// "Mi perfil" aparece al final del menú de todos los roles
+const ITEM_PERFIL = { id: 'perfil', texto: 'Mi perfil', icono: 'perfil', href: 'pages/perfil.html' };
 
 // Opciones del menú lateral por rol (href relativo a la raíz del sitio)
 const MENUS = {
@@ -32,7 +36,7 @@ const MENUS = {
   ],
   admin_recinto: [
     { id: 'panel', texto: 'Panel', icono: 'panel', href: 'pages/admin/panel.html' },
-    { id: 'propietarios', texto: 'Propietarios autorizados', icono: 'usuarios', href: 'pages/admin/propietarios.html' },
+    { id: 'propietarios', texto: 'Personas y unidades', icono: 'usuarios', href: 'pages/admin/propietarios.html' },
     { id: 'camaras', texto: 'Cámaras y equipos', icono: 'camara', href: 'pages/admin/camaras.html' },
     { id: 'historial', texto: 'Historial de accesos', icono: 'historial', href: 'pages/admin/historial.html' },
     { id: 'notificaciones', texto: 'Notificación de cambios', icono: 'campana', href: 'pages/admin/notificaciones.html' },
@@ -69,6 +73,7 @@ function iniciales(nombre) {
 
 function crearSidebar(usuario, activo) {
   const enlaces = (MENUS[usuario.rol] || [])
+    .concat(ITEM_PERFIL)
     .map(
       (item) =>
         '<a href="' + CONFIG.RAIZ + item.href + '"' +
@@ -97,20 +102,21 @@ function crearHeader(usuario, titulo) {
     '<h1 class="header-titulo"></h1>' +
     '<span class="estado-conexion oculto" id="estado-conexion" role="status"><span class="estado-conexion-texto"></span></span>' +
     '<div class="header-usuario">' +
-    '<button class="btn btn-secundario btn-cambiar-recinto oculto" id="btn-cambiar-recinto" type="button" title="Cambiar de recinto">' +
-    icono('cambiar') + '<span>Cambiar recinto</span></button>' +
+    '<button class="btn btn-secundario btn-cambiar-recinto oculto" id="btn-cambiar-recinto" type="button" title="Entrar con otro rol o recinto">' +
+    icono('cambiar') + '<span>Cambiar perfil</span></button>' +
+    '<a class="usuario-enlace" href="' + CONFIG.RAIZ + ITEM_PERFIL.href + '" title="Mi perfil">' +
     '<div class="usuario-info"><div class="usuario-nombre"></div><div class="usuario-rol"></div></div>' +
-    '<div class="avatar" aria-hidden="true"></div>' +
+    '<div class="avatar" aria-hidden="true"></div></a>' +
     '<button class="btn btn-secundario btn-salir" id="btn-salir" type="button">Cerrar sesión</button>' +
     '</div>';
 
   // textContent evita inyectar HTML con datos del usuario
   header.querySelector('.header-titulo').textContent = titulo;
   header.querySelector('.usuario-nombre').textContent = usuario.nombre;
-  // El rol va acompañado del recinto de la sesión (útil para quien trabaja en varios recintos)
+  // El rol va acompañado del recinto de la sesión (útil para quien tiene varios perfiles)
   header.querySelector('.usuario-rol').textContent =
     (NOMBRE_ROL[usuario.rol] || usuario.rol) + (usuario.recinto_nombre ? ' · ' + usuario.recinto_nombre : '');
-  if (obtenerRecintos().length > 1) header.querySelector('#btn-cambiar-recinto').classList.remove('oculto');
+  if (totalPerfiles() > 1) header.querySelector('#btn-cambiar-recinto').classList.remove('oculto');
   header.querySelector('.avatar').textContent = iniciales(usuario.nombre);
   return header;
 }
@@ -186,27 +192,26 @@ async function cargarContadorNotificaciones() {
   }
 }
 
-// ---------- Cambio de recinto (usuarios con más de un recinto, HU-19 / HU-20) ----------
+// ---------- Cambio de perfil: otro recinto u otro rol (HU-19 / HU-20) ----------
+
+// Entra con el perfil elegido y va a su página de inicio
+async function entrarConPerfil(recintoId, rol) {
+  try {
+    const usuario = await seleccionarRecinto(recintoId, rol);
+    irAPaginaDeRol(usuario.rol);
+  } catch (error) {
+    toast(error.message, 'error');
+  }
+}
+
 function abrirCambioRecinto() {
-  const actual = obtenerUsuario().recinto_id;
-  const opciones = obtenerRecintos()
-    .map(
-      (r) => `<button type="button" class="opcion-recinto${r.recinto_id === actual ? ' actual' : ''}" data-id="${r.recinto_id}"
-                ${r.recinto_id === actual ? 'aria-current="true"' : ''}>
-                <strong>${escapar(r.nombre)}</strong>
-                <span>${escapar([r.comuna, r.unidad && 'Unidad ' + r.unidad, r.recinto_id === actual && 'Recinto actual'].filter(Boolean).join(' · '))}</span>
-              </button>`
-    )
-    .join('');
-  const modal = abrirModal({ titulo: 'Cambiar de recinto', cuerpo: `<div class="lista-recintos">${opciones}</div>` });
-  modal.elemento.querySelector('.lista-recintos').addEventListener('click', async (e) => {
-    const boton = e.target.closest('.opcion-recinto');
-    if (!boton || Number(boton.dataset.id) === actual) return;
-    try {
-      const usuario = await seleccionarRecinto(Number(boton.dataset.id));
-      irAPaginaDeRol(usuario.rol);
-    } catch (error) {
-      toast(error.message, 'error');
-    }
+  const modal = abrirModal({
+    titulo: 'Cambiar perfil',
+    cuerpo: '<p class="texto-suave" style="margin-top:0">Elige el recinto y el rol con que quieres trabajar.</p><div class="lista-recintos" role="list"></div>',
+  });
+  const usuario = obtenerUsuario();
+  pintarPerfiles(modal.elemento.querySelector('.lista-recintos'), {
+    actual: { recinto_id: usuario.recinto_id, rol: usuario.rol },
+    alElegir: entrarConPerfil,
   });
 }
