@@ -18,7 +18,7 @@ Interfaz web de **SegurIA-LPR**, sistema de control de acceso vehicular por reco
 | Admin de plataforma | Auditoría | Bitácora de todos los recintos y de las acciones de plataforma |
 | Admin de recinto | Panel | Accesos de hoy, gráfico de 7 días, resumen del recinto, últimas detecciones en tiempo real y estado de equipos |
 | Admin de recinto | Personas y unidades | Pestañas de propietarios (con sus patentes), guardias, administradores y unidades. **Un solo formulario por persona**: datos básicos + roles (Administrador, Guardia, Propietario con su unidad) en cada recinto que administra. Botón **Vehículos y visitas** para gestionarlos a nombre de un propietario que no puede usar la plataforma |
-| Admin de recinto | Cámaras y equipos | Gestionar cámaras y Raspberry Pi, con API key que se muestra una sola vez |
+| Admin de recinto | Cámaras y equipos | Gestionar cámaras y Raspberry Pi (relación 1 a 1, API key que se muestra una sola vez). Una cámara sin equipo queda **pendiente de asignación**: no se usa ni aparece en el monitor del guardia |
 | Admin de recinto | Historial de accesos | Filtros por fecha, patente, resultado, cámara y sentido; detalle con captura y zoom |
 | Admin de recinto | Notificación de cambios | Cambios de vehículos (antes → después), visitas programadas y accesos no autorizados; marcar como leídas, contador en el menú |
 | Admin de recinto | Auditoría | Pestañas «Cambios de propietarios» (HU-26) y «Bitácora completa» (HU-5), con detalle antes/después |

@@ -18,7 +18,7 @@
         <div class="seccion-cabecera">
           <div>
             <h2>Equipos Raspberry Pi</h2>
-            <p>Procesan las imágenes de las cámaras y validan las patentes contra una copia local.</p>
+            <p>Cada equipo procesa las imágenes de UNA cámara y valida las patentes contra una copia local. Un equipo sin cámara queda pendiente de asignación.</p>
           </div>
           <button type="button" class="btn btn-primario" id="btn-nuevo-dispositivo">+ Nuevo equipo</button>
         </div>
@@ -26,11 +26,11 @@
           <table class="tabla">
             <thead>
               <tr>
-                <th>Equipo</th>
+                <th>Raspberry Pi</th>
                 <th>IP</th>
                 <th>Última señal</th>
                 <th>Última sincronización</th>
-                <th class="num">Cámaras</th>
+                <th>Cámara asignada</th>
                 <th>Estado</th>
                 <th><span class="sr-only">Acciones</span></th>
               </tr>
@@ -44,7 +44,7 @@
         <div class="seccion-cabecera">
           <div>
             <h2>Cámaras IP</h2>
-            <p>Cada cámara controla una entrada o una salida y se conecta a un equipo.</p>
+            <p>Cada cámara controla una entrada o una salida y funciona con su propia Raspberry Pi. Sin equipo queda <strong>pendiente de asignación</strong>: no se usa ni aparece en el monitor del guardia.</p>
           </div>
           <button type="button" class="btn btn-primario" id="btn-nueva-camara">+ Nueva cámara</button>
         </div>
@@ -55,7 +55,7 @@
                 <th>Cámara</th>
                 <th>Sentido</th>
                 <th>IP</th>
-                <th>Equipo</th>
+                <th>Raspberry Pi</th>
                 <th>Estado</th>
                 <th><span class="sr-only">Acciones</span></th>
               </tr>

@@ -947,6 +947,11 @@ input[type="date"].input {
   font-weight: 700;
 }
 
+/* ---------- Cámaras sin Raspberry Pi (pendientes de asignación) ---------- */
+.tabla tr.pendiente-asignacion td {
+  background: rgba(245, 165, 36, 0.06);
+}
+
 /* ---------- Auditoría ---------- */
 .tabla tr.fila-cambio td {
   background: rgba(245, 165, 36, 0.08);
