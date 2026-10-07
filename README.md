@@ -78,7 +78,7 @@ seguria-lpr-frontend/
 
 | Rol | Email | Contraseña | Página inicial |
 |---|---|---|---|
-| Admin de plataforma | `admin@seguria.cl` | `Seguria2026!` | `pages/plataforma/recintos.html` |
+| Admin de plataforma | `admin@seguria-lpr.cl` | `Seguria2026!` | `pages/plataforma/recintos.html` |
 | Admin de recinto | `recinto@seguria.cl` | `Seguria2026!` | `pages/admin/panel.html` |
 | Propietario | `propietario@seguria.cl` | `Seguria2026!` | `pages/propietario/vehiculos.html` |
 | Guardia | `guardia@seguria.cl` | `Seguria2026!` | `pages/guardia/monitor.html` |
