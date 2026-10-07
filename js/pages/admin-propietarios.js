@@ -14,7 +14,7 @@
     propietarios: {
       rol: 'propietario',
       titulo: 'Propietarios autorizados',
-      descripcion: 'Residentes del recinto y sus vehículos. Los propietarios editan sus vehículos desde su propia cuenta.',
+      descripcion: 'Residentes del recinto. Cada propietario gestiona sus vehículos y visitas desde su cuenta; si no puede hacerlo, usa "Vehículos y visitas" para gestionarlos por él.',
       boton: '+ Nuevo propietario',
       busqueda: 'Nombre, RUT, unidad o patente',
       singular: 'propietario',
@@ -115,6 +115,7 @@
           }
           <td>${badgeActivo(u.activo)}</td>
           <td class="acciones">
+            ${esPropietario ? `<button type="button" class="btn-texto" data-gestionar="${u.id}">Vehículos y visitas</button>` : ''}
             <button type="button" class="btn-texto" data-editar="${u.id}">Editar</button>
             <button type="button" class="btn-texto${u.activo ? ' peligro' : ''}" data-estado="${u.id}">${u.activo ? 'Desactivar' : 'Activar'}</button>
           </td>
@@ -158,7 +159,7 @@
       cuerpo:
         formularioUsuarioHtml(u, { edicion, extras }) +
         (config.rol === 'propietario' && !edicion
-          ? '<div class="alerta alerta-info">El propietario registrará sus vehículos al ingresar con su cuenta.</div>'
+          ? '<div class="alerta alerta-info">El propietario podrá registrar sus vehículos y visitas con su cuenta. Si no puede, después de crearlo usa "Vehículos y visitas".</div>'
           : ''),
       textoEnviar: edicion ? 'Guardar cambios' : 'Crear ' + config.singular,
       alEnviar: async (datos) => {
@@ -197,6 +198,127 @@
     } catch (error) {
       toast(error.message, 'error');
     }
+  }
+
+  // ---------- Vehículos y visitas de un propietario (gestionados por el admin) ----------
+  // Pensado para propietarios que no pueden usar la plataforma por sí mismos.
+  function abrirGestionPropietario(p) {
+    const nombre = p.nombre + ' ' + p.apellido;
+    const modal = abrirModal({
+      titulo: 'Vehículos y visitas de ' + nombre,
+      ancho: true,
+      cuerpo: `
+        <p class="texto-suave" style="margin-top:0">${escapar(p.unidad || 'Sin unidad')}${p.telefono ? ' · ' + escapar(p.telefono) : ''}
+          · Los cambios que hagas aquí quedan a nombre de ${escapar(nombre)}.</p>
+        ${p.activo ? '' : '<div class="alerta alerta-aviso">Este propietario está desactivado: sus vehículos no están autorizados y no se le pueden programar visitas.</div>'}
+        <div class="seccion-cabecera">
+          <h2>Vehículos</h2>
+          <button type="button" class="btn btn-primario btn-sm" data-nuevo="vehiculo">+ Agregar vehículo</button>
+        </div>
+        <div class="tabla-contenedor">
+          <table class="tabla">
+            <thead><tr><th>Patente</th><th>Vehículo</th><th>Estado</th><th><span class="sr-only">Acciones</span></th></tr></thead>
+            <tbody data-lista="vehiculos"></tbody>
+          </table>
+        </div>
+        <div class="seccion-cabecera" style="margin-top:1.5rem">
+          <h2>Visitas próximas y en curso</h2>
+          <button type="button" class="btn btn-primario btn-sm" data-nuevo="visita" ${p.activo ? '' : 'disabled'}>+ Programar visita</button>
+        </div>
+        <div class="tabla-contenedor">
+          <table class="tabla">
+            <thead><tr><th>Visitante</th><th>Patente</th><th>Horario</th><th>Estado</th><th><span class="sr-only">Acciones</span></th></tr></thead>
+            <tbody data-lista="visitas"></tbody>
+          </table>
+        </div>`,
+      // Al cerrar, se actualiza la tabla (las patentes del propietario pueden haber cambiado)
+      alCerrar: cargarUsuarios,
+    });
+
+    const tbodyVehiculos = modal.elemento.querySelector('[data-lista="vehiculos"]');
+    const tbodyVisitas = modal.elemento.querySelector('[data-lista="visitas"]');
+    let vehiculos = [];
+    let visitas = [];
+
+    async function cargarVehiculos() {
+      filaEstado(tbodyVehiculos, 4, 'Cargando…');
+      try {
+        vehiculos = await api.get('/vehiculos?propietario_id=' + p.id);
+        tbodyVehiculos.innerHTML = vehiculos.length
+          ? vehiculos
+              .map(
+                (v) => `
+              <tr class="${v.activo ? '' : 'inactivo'}">
+                <td>${patenteChip(v.patente, v.activo)}</td>
+                <td>${escapar([v.marca, v.modelo].filter(Boolean).join(' ') || '—')}
+                    <span class="secundario">${escapar(NOMBRE_TIPO_VEHICULO[v.tipo] || v.tipo)}${v.color ? ' · ' + escapar(v.color) : ''}</span></td>
+                <td>${v.activo ? '<span class="badge badge-exito">Autorizado</span>' : '<span class="badge">Desactivado</span>'}</td>
+                <td class="acciones">
+                  <button type="button" class="btn-texto" data-vehiculo="editar" data-id="${v.id}">Editar</button>
+                  <button type="button" class="btn-texto" data-vehiculo="estado" data-id="${v.id}">${v.activo ? 'Desactivar' : 'Activar'}</button>
+                  <button type="button" class="btn-texto peligro" data-vehiculo="eliminar" data-id="${v.id}">Eliminar</button>
+                </td>
+              </tr>`
+              )
+              .join('')
+          : '';
+        if (!vehiculos.length) filaEstado(tbodyVehiculos, 4, 'Este propietario aún no tiene vehículos.');
+      } catch (error) {
+        filaEstado(tbodyVehiculos, 4, error.message);
+      }
+    }
+
+    async function cargarVisitas() {
+      filaEstado(tbodyVisitas, 5, 'Cargando…');
+      try {
+        visitas = (await api.get(`/visitas?vigencia=proximas&limite=50&propietario_id=${p.id}`)).datos;
+        if (!visitas.length) {
+          filaEstado(tbodyVisitas, 5, 'No tiene visitas programadas.');
+          return;
+        }
+        tbodyVisitas.innerHTML = visitas
+          .map(
+            (v) => `
+            <tr>
+              <td><span class="principal">${escapar(v.nombre_visitante)}</span>
+                  <span class="secundario">${escapar(v.motivo || '')}</span></td>
+              <td>${v.patente ? patenteChip(v.patente) : '<span class="texto-suave">A pie</span>'}</td>
+              <td>${horarioVisita(v)}</td>
+              <td>${badgeVisita(v.estado_actual)}</td>
+              <td class="acciones">
+                <button type="button" class="btn-texto" data-visita="editar" data-id="${v.id}">Editar</button>
+                <button type="button" class="btn-texto peligro" data-visita="cancelar" data-id="${v.id}">Cancelar</button>
+              </td>
+            </tr>`
+          )
+          .join('');
+      } catch (error) {
+        filaEstado(tbodyVisitas, 5, error.message);
+      }
+    }
+
+    modal.elemento.addEventListener('click', (e) => {
+      const boton = e.target.closest('button');
+      if (!boton) return;
+      const id = Number(boton.dataset.id);
+      if (boton.dataset.nuevo === 'vehiculo') {
+        abrirFormularioVehiculo({ propietarioId: p.id, aviso: `El vehículo quedará registrado a nombre de ${nombre}.`, alGuardar: cargarVehiculos });
+      } else if (boton.dataset.nuevo === 'visita') {
+        abrirFormularioVisita({ propietarioId: p.id, alGuardar: cargarVisitas });
+      } else if (boton.dataset.vehiculo) {
+        const v = vehiculos.find((x) => x.id === id);
+        if (boton.dataset.vehiculo === 'editar') abrirFormularioVehiculo({ vehiculo: v, alGuardar: cargarVehiculos });
+        else if (boton.dataset.vehiculo === 'estado') cambiarEstadoVehiculo(v, cargarVehiculos);
+        else if (boton.dataset.vehiculo === 'eliminar') eliminarVehiculo(v, cargarVehiculos);
+      } else if (boton.dataset.visita) {
+        const v = visitas.find((x) => x.id === id);
+        if (boton.dataset.visita === 'editar') abrirFormularioVisita({ visita: v, alGuardar: cargarVisitas });
+        else if (boton.dataset.visita === 'cancelar') cancelarVisita(v, cargarVisitas);
+      }
+    });
+
+    cargarVehiculos();
+    cargarVisitas();
   }
 
   // ---------- Unidades ----------
@@ -287,9 +409,10 @@
   tbodyUsuarios.addEventListener('click', (e) => {
     const boton = e.target.closest('button');
     if (!boton) return;
-    const u = usuarios.find((x) => x.id === Number(boton.dataset.editar || boton.dataset.estado));
+    const u = usuarios.find((x) => x.id === Number(boton.dataset.editar || boton.dataset.estado || boton.dataset.gestionar));
     if (boton.dataset.editar) abrirFormularioUsuario(u);
     else if (boton.dataset.estado) cambiarEstadoUsuario(u);
+    else if (boton.dataset.gestionar) abrirGestionPropietario(u);
   });
 
   tbodyUnidades.addEventListener('click', (e) => {
