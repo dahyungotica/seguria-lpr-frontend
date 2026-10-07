@@ -32,6 +32,12 @@ async function peticion(metodo, ruta, body, opciones = {}) {
 
   const datos = await respuesta.json().catch(() => null);
 
+  // La sesión aún no tiene recinto elegido (usuarios con varios recintos): volver a elegir
+  if (respuesta.status === 403 && datos && datos.codigo === 'SELECCIONAR_RECINTO' && !opciones.sinRedireccion) {
+    irA('index.html');
+    throw new Error(datos.error);
+  }
+
   if (!respuesta.ok) {
     const error = new Error((datos && datos.error) || 'Error ' + respuesta.status);
     error.status = respuesta.status;

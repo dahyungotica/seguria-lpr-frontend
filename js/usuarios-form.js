@@ -13,13 +13,15 @@ function formularioUsuarioHtml(u = {}, { extras = '', edicion = false } = {}) {
     ${campoHtml({ nombre: 'email', etiqueta: 'Email', tipo: 'email', valor: u.email, requerido: true, completo: true, atributos: 'maxlength="150" autocomplete="off"' })}
     ${extras}
     <div class="campo completo">
-      <label for="campo-password">${edicion ? 'Nueva contraseña' : 'Contraseña inicial <span class="obligatorio" aria-hidden="true">*</span>'}</label>
+      <label for="campo-password">${edicion ? 'Nueva contraseña' : 'Contraseña inicial'}</label>
       <div class="input-con-accion">
         <input class="input" id="campo-password" name="password" type="text" autocomplete="new-password"
                placeholder="${edicion ? 'Dejar vacío para mantener la actual' : 'Mínimo 8 caracteres, con letras y números'}" />
         <button type="button" class="btn btn-secundario btn-sm" data-generar-password>Generar</button>
       </div>
-      <span class="ayuda">Entrégala al usuario por un canal seguro.</span>
+      <span class="ayuda">${edicion
+        ? 'Entrégala al usuario por un canal seguro.'
+        : 'Entrégala al usuario por un canal seguro. Si la persona ya tiene cuenta en otro recinto, déjala vacía: se vinculará a su cuenta existente con el mismo email y RUT.'}</span>
       <span class="texto-error-campo"></span>
     </div>
   </div>`;

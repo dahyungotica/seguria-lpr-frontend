@@ -14,21 +14,26 @@ Interfaz web de **SegurIA-LPR**, sistema de control de acceso vehicular por reco
 |---|---|---|
 | Admin de plataforma | Recintos | Crear, editar, buscar y activar/desactivar recintos |
 | Admin de plataforma | Administradores | Crear y editar administradores de recinto, generar contraseña, filtrar por recinto |
+| Admin de plataforma | Accesos de recintos | Historial de accesos de todos los recintos con filtro por recinto; cada consulta queda en la auditoría (HU-23) |
+| Admin de plataforma | Auditoría | Bitácora de todos los recintos y de las acciones de plataforma |
 | Admin de recinto | Panel | Accesos de hoy, gráfico de 7 días, resumen del recinto, últimas detecciones en tiempo real y estado de equipos |
 | Admin de recinto | Propietarios autorizados | Pestañas de propietarios (con sus patentes), guardias y unidades. Botón **Vehículos y visitas** para gestionarlos a nombre de un propietario que no puede usar la plataforma |
 | Admin de recinto | Cámaras y equipos | Gestionar cámaras y Raspberry Pi, con API key que se muestra una sola vez |
 | Admin de recinto | Historial de accesos | Filtros por fecha, patente, resultado, cámara y sentido; detalle con captura y zoom |
 | Admin de recinto | Notificación de cambios | Cambios de vehículos (antes → después), visitas programadas y accesos no autorizados; marcar como leídas, contador en el menú |
+| Admin de recinto | Auditoría | Pestañas «Cambios de propietarios» (HU-26) y «Bitácora completa» (HU-5), con detalle antes/después |
 | Propietario | Mis vehículos | Agregar, editar, activar/desactivar y eliminar vehículos sin aprobación (se notifica al admin) |
-| Propietario | Mis visitas | Programar visitas con horario y patente opcional, editarlas y cancelarlas |
+| Propietario | Mis visitas | Programar visitas de hasta 24 horas con patente opcional, editarlas y cancelarlas (el admin puede dar hasta 30 días, HU-28) |
 | Propietario | Historial de accesos | Solo los accesos de sus vehículos y visitas |
-| Guardia | Monitor en vivo | Captura siempre visible con zoom, detecciones en tiempo real, visitas de hoy y autorización manual con detalle obligatorio |
+| Guardia | Monitor en vivo | Captura siempre visible con zoom, detecciones en tiempo real, visitas de hoy; atiende las alertas autorizando (detalle obligatorio) o rechazando (HU-31) |
 | Guardia | Historial de accesos | Historial del recinto; puede autorizar desde el detalle un acceso denegado |
 | Guardia | Propietarios | Consulta de solo lectura: unidad, contacto y patentes |
 
 ## Documentación
 
-`documentation/SegurIA-LPR_Presentacion_Plataforma.docx`: documento de presentación de la plataforma (qué es, cómo funciona, roles y recorrido por cada pantalla). Es el mismo documento que está en el repositorio del backend.
+`documentation/SegurIA-LPR_Presentacion_Plataforma.docx`: documento de presentación de la plataforma (qué es, cómo funciona, roles y recorrido por cada pantalla).
+`documentation/SegurIA-LPR_MER_final.png`: MER final con los cambios respecto al MER original.
+Ambos archivos están también en el repositorio del backend.
 
 ## Estructura
 
@@ -84,6 +89,8 @@ seguria-lpr-frontend/
 | Guardia | `guardia@seguria.cl` | `Seguria2026!` | `pages/guardia/monitor.html` |
 
 ## Cómo funciona la sesión
+
+- Quien pertenece a **varios recintos** (propietario o guardia) elige el recinto después de iniciar sesión y puede cambiarlo con el botón **Cambiar recinto** del encabezado (HU-19, HU-20).
 
 - Al iniciar sesión se guardan `seguria_token` y `seguria_usuario` en `localStorage`.
 - Cada página interna llama a `iniciarPagina({ roles: [...] })`, que usa `requireRole()`:

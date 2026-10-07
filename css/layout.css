@@ -183,6 +183,54 @@ body.app.listo {
   font-size: 0.85rem;
 }
 
+.btn-cambiar-recinto {
+  padding: 0.45rem 0.7rem;
+  font-size: 0.85rem;
+}
+
+.btn-cambiar-recinto svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Lista de recintos en el modal "Cambiar de recinto" */
+.lista-recintos {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.opcion-recinto {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  width: 100%;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-sm);
+  background: var(--color-fondo);
+  color: var(--color-texto);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.opcion-recinto:hover,
+.opcion-recinto:focus-visible {
+  border-color: var(--color-primario);
+  background: var(--color-primario-suave);
+}
+
+.opcion-recinto.actual {
+  border-color: var(--color-primario);
+  cursor: default;
+}
+
+.opcion-recinto span {
+  font-size: 0.82rem;
+  color: var(--color-texto-suave);
+}
+
 .btn-salir {
   padding: 0.45rem 0.75rem;
   font-size: 0.85rem;
@@ -424,7 +472,8 @@ textarea.input {
 
 @media (max-width: 560px) {
   .usuario-info,
-  .estado-conexion-texto {
+  .estado-conexion-texto,
+  .btn-cambiar-recinto span {
     display: none;
   }
 }

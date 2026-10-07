@@ -106,8 +106,13 @@ formulario.addEventListener('submit', async (evento) => {
 
   setCargando(true);
   try {
-    const usuario = await login(inputEmail.value.trim().toLowerCase(), inputPassword.value);
-    irAPaginaDeRol(usuario.rol);
+    const sesion = await login(inputEmail.value.trim().toLowerCase(), inputPassword.value);
+    if (sesion.requiere_seleccion) {
+      setCargando(false);
+      mostrarEleccionRecinto();
+      return;
+    }
+    irAPaginaDeRol(sesion.usuario.rol);
   } catch (error) {
     if (error.status === 400) {
       mostrarError('Revisa el correo y la contraseña ingresados.');
@@ -120,3 +125,56 @@ formulario.addEventListener('submit', async (evento) => {
     setCargando(false);
   }
 });
+
+// ---------- Elección de recinto (HU-19 / HU-20) ----------
+// Quien pertenece a varios recintos elige en cuál va a trabajar.
+const pasoRecinto = document.getElementById('paso-recinto');
+const listaRecintos = document.getElementById('lista-recintos');
+
+function mostrarEleccionRecinto() {
+  const usuario = obtenerUsuario();
+  document.getElementById('titulo-login').textContent = 'Elige un recinto';
+  document.getElementById('recinto-saludo').textContent =
+    `Hola, ${usuario.nombre}. Tienes acceso a más de un recinto: ¿en cuál vas a trabajar?`;
+  formulario.classList.add('oculto');
+  ocultarError();
+  pasoRecinto.classList.remove('oculto');
+
+  listaRecintos.innerHTML = '';
+  for (const r of obtenerRecintos()) {
+    const boton = document.createElement('button');
+    boton.type = 'button';
+    boton.className = 'opcion-recinto';
+    boton.setAttribute('role', 'listitem');
+    boton.dataset.id = r.recinto_id;
+    const nombre = document.createElement('strong');
+    nombre.textContent = r.nombre;
+    const detalle = document.createElement('span');
+    detalle.textContent = [r.comuna, r.unidad && 'Unidad ' + r.unidad].filter(Boolean).join(' · ');
+    boton.append(nombre, detalle);
+    listaRecintos.appendChild(boton);
+  }
+  const primero = listaRecintos.querySelector('button');
+  if (primero) primero.focus();
+}
+
+listaRecintos.addEventListener('click', async (e) => {
+  const boton = e.target.closest('.opcion-recinto');
+  if (!boton) return;
+  listaRecintos.querySelectorAll('button').forEach((b) => (b.disabled = true));
+  try {
+    const usuario = await seleccionarRecinto(Number(boton.dataset.id));
+    irAPaginaDeRol(usuario.rol);
+  } catch (error) {
+    mostrarError(error.message);
+    listaRecintos.querySelectorAll('button').forEach((b) => (b.disabled = false));
+  }
+});
+
+document.getElementById('btn-otra-cuenta').addEventListener('click', () => {
+  borrarSesion();
+  window.location.reload();
+});
+
+// Sesión iniciada que aún no eligió recinto (ej. volvió a esta página o se le pidió elegir)
+if (faltaElegirRecinto()) mostrarEleccionRecinto();

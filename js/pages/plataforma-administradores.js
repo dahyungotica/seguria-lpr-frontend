@@ -67,8 +67,8 @@
           <td title="${escapar(formatearFecha(a.ultimo_login))}">${escapar(tiempoRelativo(a.ultimo_login))}</td>
           <td>${badgeActivo(a.activo)}</td>
           <td class="acciones">
-            <button type="button" class="btn-texto" data-editar="${a.id}">Editar</button>
-            <button type="button" class="btn-texto${a.activo ? ' peligro' : ''}" data-estado="${a.id}">
+            <button type="button" class="btn-texto" data-editar="${a.vinculo_id}">Editar</button>
+            <button type="button" class="btn-texto${a.activo ? ' peligro' : ''}" data-estado="${a.vinculo_id}">
               ${a.activo ? 'Desactivar' : 'Activar'}</button>
           </td>
         </tr>`
@@ -102,9 +102,14 @@
       alEnviar: async (datos) => {
         if (edicion) {
           if (!datos.password) delete datos.password;
-          await api.put('/usuarios/' + admin.id, datos);
+          await api.put('/usuarios/' + admin.id, { ...datos, vinculo_id: admin.vinculo_id });
         } else {
-          await api.post('/usuarios', { ...datos, rol: 'admin_recinto' });
+          const creado = await api.post('/usuarios', { ...datos, rol: 'admin_recinto' });
+          if (creado.vinculado) {
+            toast(`${creado.nombre} ${creado.apellido} ya tenía cuenta: se vinculó a ${creado.recinto_nombre}`, 'exito');
+            cargar();
+            return;
+          }
         }
         toast(edicion ? 'Administrador actualizado' : 'Administrador creado', 'exito');
         cargar();
@@ -124,7 +129,7 @@
     });
     if (!ok) return;
     try {
-      await api.patch(`/usuarios/${admin.id}/estado`, { activo: activar });
+      await api.patch(`/usuarios/${admin.id}/estado`, { activo: activar, vinculo_id: admin.vinculo_id });
       toast(activar ? 'Cuenta activada' : 'Cuenta desactivada', 'exito');
       cargar();
     } catch (error) {
@@ -147,7 +152,8 @@
     const boton = e.target.closest('button');
     if (!boton) return;
     const id = Number(boton.dataset.editar || boton.dataset.estado);
-    const admin = administradores.find((a) => a.id === id);
+    // Cada fila es un vínculo administrador-recinto (un admin puede estar en varios recintos)
+    const admin = administradores.find((a) => a.vinculo_id === id);
     if (boton.dataset.editar) abrirFormulario(admin);
     else if (boton.dataset.estado) cambiarEstado(admin);
   });

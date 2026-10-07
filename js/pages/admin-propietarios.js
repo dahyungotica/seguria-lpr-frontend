@@ -105,7 +105,7 @@
         (u) => `
         <tr class="${u.activo ? '' : 'inactivo'}">
           <td><span class="principal">${escapar(u.nombre + ' ' + u.apellido)}</span>
-              <span class="secundario">${escapar(u.email)}</span></td>
+              <span class="secundario">${escapar(u.email)}${u.total_recintos > 1 ? ` · también en otro${u.total_recintos > 2 ? 's' : ''} ${u.total_recintos - 1} recinto${u.total_recintos > 2 ? 's' : ''}` : ''}</span></td>
           <td>${escapar(formatearRut(u.rut))}</td>
           ${
             esPropietario
@@ -167,7 +167,14 @@
           if (!datos.password) delete datos.password;
           await api.put('/usuarios/' + u.id, datos);
         } else {
-          await api.post('/usuarios', { ...datos, rol: config.rol });
+          const creado = await api.post('/usuarios', { ...datos, rol: config.rol });
+          // HU-19 / HU-20: si la persona ya tenía cuenta en otro recinto, solo se vinculó
+          if (creado.vinculado) {
+            toast(`${creado.nombre} ${creado.apellido} ya tenía cuenta en otro recinto: quedó vinculado a este`, 'exito');
+            unidades = [];
+            cargarUsuarios();
+            return;
+          }
         }
         toast(edicion ? 'Cambios guardados' : `${config.singular[0].toUpperCase() + config.singular.slice(1)} creado`, 'exito');
         unidades = []; // los contadores de las unidades cambiaron

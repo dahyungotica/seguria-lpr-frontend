@@ -76,6 +76,7 @@
       ['Vehículos autorizados', resumen.vehiculos, 'propietarios.html'],
       ['Visitas vigentes ahora', resumen.visitas_vigentes, null],
       ['Guardias activos', resumen.guardias, 'propietarios.html#guardias'],
+      ['Alertas sin atender', resumen.alertas_pendientes, 'historial.html'],
     ];
     document.getElementById('resumen-recinto').innerHTML = filas
       .map(

@@ -2,7 +2,7 @@
 // Guardia > Monitor en vivo
 //  - La captura de la cámara siempre está visible, con zoom.
 //  - Las detecciones llegan en tiempo real (Socket.io: "acceso:nuevo").
-//  - Un acceso denegado se puede autorizar manualmente con detalle obligatorio.
+//  - Un acceso denegado genera una alerta: el guardia la autoriza (detalle obligatorio) o la rechaza.
 // =====================================================================
 (function () {
   const usuario = iniciarPagina({ roles: ['guardia'], activo: 'monitor', titulo: 'Monitor en vivo' });
@@ -62,9 +62,11 @@
       vacia.innerHTML = '<strong>Sin captura</strong><span>El equipo no envió imagen para esta detección.</span>';
     }
 
-    const denegado = a.resultado === 'denegado';
+    // HU-31: un acceso denegado tiene una alerta; si está pendiente, el guardia decide
+    const pendiente = a.alerta_estado === 'pendiente';
+    const motivo = a.alerta_detalle || a.detalle_autorizacion;
     document.getElementById('deteccion-actual').innerHTML = `
-      <div class="deteccion-cabecera${denegado ? ' alerta-denegado' : ''}">
+      <div class="deteccion-cabecera${pendiente ? ' alerta-denegado' : ''}">
         <span class="patente-grande">${escapar(a.patente_detectada)}</span>
         ${badge(a.resultado)}
         <span class="texto-suave">${escapar(formatearHora(a.fecha_hora))} · ${escapar(tiempoRelativo(a.fecha_hora))}</span>
@@ -72,13 +74,17 @@
       <dl class="detalle-lista">
         <dt>Asociado a</dt><dd>${asociadoA(a)}</dd>
         <dt>Confianza OCR</dt><dd>${a.confianza_ocr != null ? escapar(Number(a.confianza_ocr).toFixed(1)) + ' %' : '—'}</dd>
-        ${a.guardia_nombre ? `<dt>Autorizado por</dt><dd>${escapar(a.guardia_nombre)}</dd>` : ''}
-        ${a.detalle_autorizacion ? `<dt>Motivo</dt><dd>${escapar(a.detalle_autorizacion)}</dd>` : ''}
+        ${a.alerta_id ? `<dt>Alerta</dt><dd><strong>${escapar(estadoAlerta(a))}</strong></dd>` : ''}
+        ${motivo ? `<dt>Motivo</dt><dd>${escapar(motivo)}</dd>` : ''}
       </dl>
-      ${denegado ? '<button type="button" class="btn btn-primario" id="btn-autorizar" style="margin-top:1rem">Autorizar ingreso manualmente</button>' : ''}`;
+      ${pendiente ? `<div class="acciones-alerta">
+          <button type="button" class="btn btn-primario" id="btn-autorizar">Autorizar ingreso</button>
+          <button type="button" class="btn btn-peligro" id="btn-rechazar">Rechazar ingreso</button>
+        </div>` : ''}`;
 
-    if (denegado) {
+    if (pendiente) {
       document.getElementById('btn-autorizar').addEventListener('click', () => abrirAutorizacion(a, actualizar));
+      document.getElementById('btn-rechazar').addEventListener('click', () => abrirRechazo(a, actualizar));
     }
     dibujarRecientes();
   }
@@ -102,6 +108,7 @@
           <button type="button" class="deteccion-item${seleccionado && seleccionado.id === a.id ? ' seleccionado' : ''}" data-id="${a.id}">
             ${patenteChip(a.patente_detectada)}
             ${badge(a.resultado)}
+            ${a.alerta_estado === 'pendiente' ? '<span class="pendiente-marca" title="Alerta pendiente">Pendiente</span>' : ''}
             <span class="hora">${escapar(formatearHora(a.fecha_hora))}</span>
           </button>
         </li>`

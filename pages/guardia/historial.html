@@ -10,12 +10,16 @@
   <link rel="stylesheet" href="../../css/layout.css" />
   <link rel="stylesheet" href="../../css/components.css" />
 </head>
-<body class="app" data-rol="guardia">
+<body class="app" data-rol="guardia" data-activo="historial">
   <!-- El sidebar y el header los genera js/layout.js según el rol -->
   <div class="app-main">
     <main class="contenido">
       <section class="tarjeta">
         <form class="barra-filtros" id="form-filtros">
+          <div class="campo">
+            <label for="filtro-recinto">Recinto</label>
+            <select class="input" id="filtro-recinto" name="recinto_id"><option value="">Todos</option></select>
+          </div>
           <div class="campo">
             <label for="filtro-desde">Desde</label>
             <input class="input" type="date" id="filtro-desde" name="desde" />
@@ -36,6 +40,14 @@
               <option value="visita">Visita</option>
               <option value="autorizado_manual">Autorizado manual</option>
               <option value="denegado">Denegado</option>
+            </select>
+          </div>
+          <div class="campo">
+            <label for="filtro-alerta">Alerta</label>
+            <select class="input" id="filtro-alerta" name="alerta">
+              <option value="">Todas</option>
+              <option value="pendiente">Pendientes</option>
+              <option value="atendida">Atendidas</option>
             </select>
           </div>
           <div class="campo">
