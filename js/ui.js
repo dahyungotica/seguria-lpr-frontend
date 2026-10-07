@@ -143,7 +143,8 @@ const ICONO_CERRAR =
 // Abre un modal. Si recibe alEnviar, el cuerpo se envuelve en un <form>:
 //   alEnviar(datos, form) -> si lanza un error, se muestra en el modal sin cerrarlo.
 // Devuelve { elemento, cerrar }.
-function abrirModal({ titulo, cuerpo, alEnviar, textoEnviar = 'Guardar', textoCancelar = 'Cancelar', ancho = false, peligro = false }) {
+// alCerrar(): opcional, se ejecuta cuando el modal se cierra (por cualquier vía).
+function abrirModal({ titulo, cuerpo, alEnviar, alCerrar, textoEnviar = 'Guardar', textoCancelar = 'Cancelar', ancho = false, peligro = false }) {
   const anterior = document.activeElement;
   const fondo = document.createElement('div');
   fondo.className = 'modal-fondo';
@@ -178,14 +179,18 @@ function abrirModal({ titulo, cuerpo, alEnviar, textoEnviar = 'Guardar', textoCa
   document.body.style.overflow = 'hidden';
 
   function cerrar() {
+    if (!fondo.isConnected) return;
     fondo.remove();
     document.removeEventListener('keydown', alPresionarTecla);
     if (!document.querySelector('.modal-fondo')) document.body.style.overflow = '';
     if (anterior && anterior.focus) anterior.focus();
+    if (alCerrar) alCerrar();
   }
 
+  // Con modales apilados, Escape cierra solo el que está encima
   function alPresionarTecla(e) {
-    if (e.key === 'Escape') cerrar();
+    const modales = document.querySelectorAll('.modal-fondo');
+    if (e.key === 'Escape' && modales[modales.length - 1] === fondo) cerrar();
   }
 
   document.addEventListener('keydown', alPresionarTecla);

@@ -15,7 +15,7 @@ Interfaz web de **SegurIA-LPR**, sistema de control de acceso vehicular por reco
 | Admin de plataforma | Recintos | Crear, editar, buscar y activar/desactivar recintos |
 | Admin de plataforma | Administradores | Crear y editar administradores de recinto, generar contraseña, filtrar por recinto |
 | Admin de recinto | Panel | Accesos de hoy, gráfico de 7 días, resumen del recinto, últimas detecciones en tiempo real y estado de equipos |
-| Admin de recinto | Propietarios autorizados | Pestañas de propietarios (con sus patentes), guardias y unidades |
+| Admin de recinto | Propietarios autorizados | Pestañas de propietarios (con sus patentes), guardias y unidades. Botón **Vehículos y visitas** para gestionarlos a nombre de un propietario que no puede usar la plataforma |
 | Admin de recinto | Cámaras y equipos | Gestionar cámaras y Raspberry Pi, con API key que se muestra una sola vez |
 | Admin de recinto | Historial de accesos | Filtros por fecha, patente, resultado, cámara y sentido; detalle con captura y zoom |
 | Admin de recinto | Notificación de cambios | Cambios de vehículos (antes → después), visitas programadas y accesos no autorizados; marcar como leídas, contador en el menú |
@@ -25,6 +25,10 @@ Interfaz web de **SegurIA-LPR**, sistema de control de acceso vehicular por reco
 | Guardia | Monitor en vivo | Captura siempre visible con zoom, detecciones en tiempo real, visitas de hoy y autorización manual con detalle obligatorio |
 | Guardia | Historial de accesos | Historial del recinto; puede autorizar desde el detalle un acceso denegado |
 | Guardia | Propietarios | Consulta de solo lectura: unidad, contacto y patentes |
+
+## Documentación
+
+`documentation/SegurIA-LPR_Presentacion_Plataforma.docx`: documento de presentación de la plataforma (qué es, cómo funciona, roles y recorrido por cada pantalla). Es el mismo documento que está en el repositorio del backend.
 
 ## Estructura
 
@@ -51,8 +55,10 @@ seguria-lpr-frontend/
 │   ├── socket.js           # Cliente Socket.io (tiempo real)
 │   ├── login.js            # Lógica del formulario de login
 │   ├── autorizacion.js     # Modal de autorización manual (guardia)
+│   ├── formularios-propietario.js # Formularios de vehículo y visita (propietario y admin)
 │   └── pages/              # Lógica de cada sección (plataforma-*, admin-*, propietario-*, guardia-*, historial.js)
 ├── assets/                 # Logo e imágenes
+├── documentation/          # Documento de presentación de la plataforma
 └── netlify.toml
 ```
 
