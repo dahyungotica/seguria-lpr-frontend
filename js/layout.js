@@ -18,6 +18,8 @@ const ICONOS = {
   visita: '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
   monitor: '<rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/><circle cx="12" cy="10" r="3"/>',
   menu: '<path d="M3 6h18M3 12h18M3 18h18"/>',
+  auditoria: '<path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h4"/>',
+  cambiar: '<path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>',
 };
 
 // Opciones del menú lateral por rol (href relativo a la raíz del sitio)
@@ -25,6 +27,8 @@ const MENUS = {
   admin_plataforma: [
     { id: 'recintos', texto: 'Recintos', icono: 'edificio', href: 'pages/plataforma/recintos.html' },
     { id: 'administradores', texto: 'Administradores', icono: 'usuarios', href: 'pages/plataforma/administradores.html' },
+    { id: 'accesos', texto: 'Accesos de recintos', icono: 'historial', href: 'pages/plataforma/accesos.html' },
+    { id: 'auditoria', texto: 'Auditoría', icono: 'auditoria', href: 'pages/plataforma/auditoria.html' },
   ],
   admin_recinto: [
     { id: 'panel', texto: 'Panel', icono: 'panel', href: 'pages/admin/panel.html' },
@@ -32,6 +36,7 @@ const MENUS = {
     { id: 'camaras', texto: 'Cámaras y equipos', icono: 'camara', href: 'pages/admin/camaras.html' },
     { id: 'historial', texto: 'Historial de accesos', icono: 'historial', href: 'pages/admin/historial.html' },
     { id: 'notificaciones', texto: 'Notificación de cambios', icono: 'campana', href: 'pages/admin/notificaciones.html' },
+    { id: 'auditoria', texto: 'Auditoría', icono: 'auditoria', href: 'pages/admin/auditoria.html' },
   ],
   propietario: [
     { id: 'vehiculos', texto: 'Mis vehículos', icono: 'auto', href: 'pages/propietario/vehiculos.html' },
@@ -92,6 +97,8 @@ function crearHeader(usuario, titulo) {
     '<h1 class="header-titulo"></h1>' +
     '<span class="estado-conexion oculto" id="estado-conexion" role="status"><span class="estado-conexion-texto"></span></span>' +
     '<div class="header-usuario">' +
+    '<button class="btn btn-secundario btn-cambiar-recinto oculto" id="btn-cambiar-recinto" type="button" title="Cambiar de recinto">' +
+    icono('cambiar') + '<span>Cambiar recinto</span></button>' +
     '<div class="usuario-info"><div class="usuario-nombre"></div><div class="usuario-rol"></div></div>' +
     '<div class="avatar" aria-hidden="true"></div>' +
     '<button class="btn btn-secundario btn-salir" id="btn-salir" type="button">Cerrar sesión</button>' +
@@ -100,7 +107,10 @@ function crearHeader(usuario, titulo) {
   // textContent evita inyectar HTML con datos del usuario
   header.querySelector('.header-titulo').textContent = titulo;
   header.querySelector('.usuario-nombre').textContent = usuario.nombre;
-  header.querySelector('.usuario-rol').textContent = NOMBRE_ROL[usuario.rol] || usuario.rol;
+  // El rol va acompañado del recinto de la sesión (útil para quien trabaja en varios recintos)
+  header.querySelector('.usuario-rol').textContent =
+    (NOMBRE_ROL[usuario.rol] || usuario.rol) + (usuario.recinto_nombre ? ' · ' + usuario.recinto_nombre : '');
+  if (obtenerRecintos().length > 1) header.querySelector('#btn-cambiar-recinto').classList.remove('oculto');
   header.querySelector('.avatar').textContent = iniciales(usuario.nombre);
   return header;
 }
@@ -139,6 +149,7 @@ function iniciarPagina({ roles, activo, titulo }) {
   main.insertBefore(crearHeader(usuario, titulo), main.firstChild);
 
   document.getElementById('btn-salir').addEventListener('click', cerrarSesion);
+  document.getElementById('btn-cambiar-recinto').addEventListener('click', abrirCambioRecinto);
   activarMenuMovil();
 
   if (usuario.rol === 'admin_recinto') cargarContadorNotificaciones();
@@ -173,4 +184,29 @@ async function cargarContadorNotificaciones() {
   } catch (e) {
     // No es crítico: si falla, simplemente no se muestra el contador
   }
+}
+
+// ---------- Cambio de recinto (usuarios con más de un recinto, HU-19 / HU-20) ----------
+function abrirCambioRecinto() {
+  const actual = obtenerUsuario().recinto_id;
+  const opciones = obtenerRecintos()
+    .map(
+      (r) => `<button type="button" class="opcion-recinto${r.recinto_id === actual ? ' actual' : ''}" data-id="${r.recinto_id}"
+                ${r.recinto_id === actual ? 'aria-current="true"' : ''}>
+                <strong>${escapar(r.nombre)}</strong>
+                <span>${escapar([r.comuna, r.unidad && 'Unidad ' + r.unidad, r.recinto_id === actual && 'Recinto actual'].filter(Boolean).join(' · '))}</span>
+              </button>`
+    )
+    .join('');
+  const modal = abrirModal({ titulo: 'Cambiar de recinto', cuerpo: `<div class="lista-recintos">${opciones}</div>` });
+  modal.elemento.querySelector('.lista-recintos').addEventListener('click', async (e) => {
+    const boton = e.target.closest('.opcion-recinto');
+    if (!boton || Number(boton.dataset.id) === actual) return;
+    try {
+      const usuario = await seleccionarRecinto(Number(boton.dataset.id));
+      irAPaginaDeRol(usuario.rol);
+    } catch (error) {
+      toast(error.message, 'error');
+    }
+  });
 }

@@ -91,12 +91,17 @@ function horarioVisita(v) {
 
 // Programar o editar una visita.
 //   propietarioId: solo cuando la programa el admin a nombre de un propietario.
+// HU-28: el propietario autoriza visitas de hasta 24 horas; el admin de recinto, de hasta 30 días.
 function abrirFormularioVisita({ visita, propietarioId, alGuardar }) {
   const v = visita;
   const edicion = Boolean(v);
-  // Por defecto: desde este minuto (para que pueda entrar de inmediato) por 4 horas
+  const esAdmin = obtenerUsuario().rol === 'admin_recinto';
+  // Por defecto: desde este minuto (para que pueda entrar de inmediato) por 24 horas
   const inicio = edicion ? new Date(v.fecha_inicio) : new Date(Math.floor(Date.now() / 60000) * 60000);
-  const fin = edicion ? new Date(v.fecha_fin) : new Date(inicio.getTime() + 4 * 3600000);
+  const fin = edicion ? new Date(v.fecha_fin) : new Date(inicio.getTime() + 24 * 3600000);
+  const aviso = esAdmin
+    ? 'Como administrador puedes autorizar la visita por hasta 30 días.'
+    : 'La visita queda autorizada como máximo por 24 horas y expira sola. Si necesitas más tiempo, pídelo al administrador del recinto.';
 
   abrirModal({
     titulo: edicion ? 'Editar visita' : 'Programar visita',
@@ -108,7 +113,7 @@ function abrirFormularioVisita({ visita, propietarioId, alGuardar }) {
       ${campoHtml({ nombre: 'fecha_fin', etiqueta: 'Hasta', tipo: 'datetime-local', valor: fechaParaInput(fin), requerido: true })}
       ${campoHtml({ nombre: 'motivo', etiqueta: 'Motivo', valor: v && v.motivo, completo: true, atributos: 'maxlength="200" placeholder="Ej: Visita familiar, técnico de internet"' })}
     </div>
-    <div class="alerta alerta-info">La visita puede durar como máximo 30 días.</div>`,
+    <div class="alerta alerta-info">${escapar(aviso)}</div>`,
     textoEnviar: edicion ? 'Guardar cambios' : 'Programar visita',
     alEnviar: async (datos) => {
       datos.fecha_inicio = fechaDesdeInput(datos.fecha_inicio);

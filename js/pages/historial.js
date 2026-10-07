@@ -1,17 +1,21 @@
 // =====================================================================
-// Historial de accesos (compartido por admin de recinto, guardia y propietario)
-// La página indica su rol en <body data-rol="...">:
-//   - admin_recinto: todo el recinto
-//   - guardia:       todo el recinto + autorizar manualmente accesos denegados
-//   - propietario:   solo los accesos de sus vehículos y visitas (sin filtro de cámara)
+// Historial de accesos (compartido por los cuatro roles)
+// La página indica su rol en <body data-rol="..." data-activo="...">:
+//   - admin_plataforma: accesos de todos los recintos, con filtro por recinto (HU-23)
+//   - admin_recinto:    todo su recinto
+//   - guardia:          todo su recinto + atender alertas pendientes (autorizar o rechazar, HU-31)
+//   - propietario:      solo los accesos de sus vehículos y visitas
+// Requiere: autorizacion.js (estadoAlerta, abrirAutorizacion, abrirRechazo)
 // =====================================================================
 (function () {
   const rolPagina = document.body.dataset.rol;
-  const usuario = iniciarPagina({ roles: [rolPagina], activo: 'historial', titulo: 'Historial de accesos' });
+  const titulo = rolPagina === 'admin_plataforma' ? 'Accesos de los recintos' : 'Historial de accesos';
+  const usuario = iniciarPagina({ roles: [rolPagina], activo: document.body.dataset.activo || 'historial', titulo });
   if (!usuario) return;
 
   const esPropietario = usuario.rol === 'propietario';
   const esGuardia = usuario.rol === 'guardia';
+  const esPlataforma = usuario.rol === 'admin_plataforma';
   const COLUMNAS = 7;
   const form = document.getElementById('form-filtros');
   const tbody = document.getElementById('tabla-accesos');
@@ -19,17 +23,28 @@
   let accesos = [];
   let pagina = 1;
 
-  async function cargarCamaras() {
-    if (esPropietario) {
-      document.getElementById('filtro-camara').closest('.campo').classList.add('oculto');
-      return;
-    }
+  function ocultarFiltro(id) {
+    const campo = document.getElementById(id);
+    if (campo) campo.closest('.campo').classList.add('oculto');
+  }
+
+  async function cargarOpcionesFiltros() {
+    // Cámaras: solo dentro de un recinto. Alertas: no aplican al propietario.
+    if (esPropietario || esPlataforma) ocultarFiltro('filtro-camara');
+    if (esPropietario) ocultarFiltro('filtro-alerta');
+    if (!esPlataforma) ocultarFiltro('filtro-recinto');
     try {
-      const camaras = await api.get('/camaras');
-      document.getElementById('filtro-camara').innerHTML =
-        '<option value="">Todas</option>' + camaras.map((c) => `<option value="${c.id}">${escapar(c.nombre)}</option>`).join('');
+      if (esPlataforma) {
+        const recintos = await api.get('/recintos');
+        document.getElementById('filtro-recinto').innerHTML =
+          '<option value="">Todos</option>' + recintos.map((r) => `<option value="${r.id}">${escapar(r.nombre)}</option>`).join('');
+      } else if (!esPropietario) {
+        const camaras = await api.get('/camaras');
+        document.getElementById('filtro-camara').innerHTML =
+          '<option value="">Todas</option>' + camaras.map((c) => `<option value="${c.id}">${escapar(c.nombre)}</option>`).join('');
+      }
     } catch (e) {
-      // El filtro por cámara queda solo con "Todas"
+      // Los filtros quedan con su opción "Todos"
     }
   }
 
@@ -60,7 +75,6 @@
       const quien = escapar(a.propietario_nombre) + (a.unidad ? `<span class="secundario">${escapar(a.unidad)}</span>` : '');
       return a.nombre_visitante ? `Visita: ${escapar(a.nombre_visitante)}<span class="secundario">de ${quien}</span>` : quien;
     }
-    if (a.resultado === 'autorizado_manual') return `<span class="secundario">Autorizó: ${escapar(a.guardia_nombre || '—')}</span>`;
     return '<span class="texto-suave">No registrado</span>';
   }
 
@@ -68,6 +82,13 @@
     return a.imagen_url
       ? `<img class="miniatura" src="${escapar(a.imagen_url)}" alt="Captura de ${escapar(a.patente_detectada)}" loading="lazy" />`
       : '<span class="sin-captura">Sin imagen</span>';
+  }
+
+  // Resultado + gestión de la alerta (si la hay)
+  function resultado(a) {
+    const gestion = estadoAlerta(a);
+    const clase = a.alerta_estado === 'pendiente' ? ' alerta-pendiente' : '';
+    return badge(a.resultado) + (gestion ? `<span class="secundario${clase}">${escapar(gestion)}</span>` : '');
   }
 
   function dibujar() {
@@ -82,9 +103,9 @@
           <td>${escapar(formatearFecha(a.fecha_hora))}</td>
           <td>${miniatura(a)}</td>
           <td>${patenteChip(a.patente_detectada)}</td>
-          <td>${badge(a.resultado)}</td>
+          <td>${resultado(a)}</td>
           <td>${asociadoA(a)}</td>
-          <td>${escapar(a.camara_nombre)}<span class="secundario">${a.sentido === 'entrada' ? 'Entrada' : 'Salida'}</span></td>
+          <td>${escapar(a.camara_nombre)}<span class="secundario">${esPlataforma ? escapar(a.recinto_nombre) : a.sentido === 'entrada' ? 'Entrada' : 'Salida'}</span></td>
           <td class="num">${a.confianza_ocr != null ? escapar(Number(a.confianza_ocr).toFixed(1)) + ' %' : '—'}</td>
         </tr>`
       )
@@ -94,6 +115,7 @@
   function verDetalle(a) {
     const vehiculo = [a.vehiculo_marca, a.vehiculo_modelo, a.vehiculo_color].filter(Boolean).join(' ');
     const filas = [
+      esPlataforma && ['Recinto', escapar(a.recinto_nombre)],
       ['Fecha y hora', escapar(formatearFecha(a.fecha_hora))],
       ['Patente', patenteChip(a.patente_detectada)],
       ['Resultado', badge(a.resultado)],
@@ -102,26 +124,25 @@
       a.propietario_nombre && ['Propietario', escapar(a.propietario_nombre) + (a.unidad ? ' · ' + escapar(a.unidad) : '')],
       vehiculo && ['Vehículo', escapar(vehiculo)],
       a.nombre_visitante && ['Visitante', escapar(a.nombre_visitante)],
-      a.guardia_nombre && ['Autorizado por', escapar(a.guardia_nombre)],
+      a.alerta_id && ['Alerta', escapar(estadoAlerta(a)) + (a.alerta_atendida_at ? ` <span class="texto-suave">(${escapar(formatearFecha(a.alerta_atendida_at))})</span>` : '')],
     ].filter(Boolean);
 
     const captura = a.imagen_url
       ? `<div class="captura-detalle" id="captura" title="Clic para ampliar"><img src="${escapar(a.imagen_url)}" alt="Captura del vehículo ${escapar(a.patente_detectada)}" /></div>`
-      : '<div class="captura-detalle"><div class="placeholder">Este acceso no tiene captura</div></div>';
+      : '<div class="captura-detalle"><div class="placeholder">Este acceso no tiene captura (o se eliminó al cumplir 60 días)</div></div>';
 
-    const puedeAutorizar = esGuardia && a.resultado === 'denegado';
+    const pendiente = esGuardia && a.alerta_estado === 'pendiente';
+    const motivo = a.alerta_detalle || a.detalle_autorizacion;
 
     const modal = abrirModal({
       titulo: 'Detalle del acceso',
       ancho: true,
       cuerpo: `${captura}
         <dl class="detalle-lista">${filas.map(([t, v]) => `<dt>${t}</dt><dd>${v}</dd>`).join('')}</dl>
-        ${
-          a.detalle_autorizacion
-            ? `<div class="alerta alerta-aviso" style="margin-top:1rem"><strong>Motivo de la autorización manual:</strong><br>${escapar(a.detalle_autorizacion)}</div>`
-            : ''
-        }
-        ${puedeAutorizar ? '<button type="button" class="btn btn-primario" id="btn-autorizar" style="margin-top:1rem">Autorizar ingreso</button>' : ''}`,
+        ${motivo ? `<div class="alerta alerta-aviso" style="margin-top:1rem"><strong>Motivo indicado por el guardia:</strong><br>${escapar(motivo)}</div>` : ''}
+        ${pendiente ? `<div class="acciones-alerta">
+            <button type="button" class="btn btn-primario" id="btn-autorizar">Autorizar ingreso</button>
+            <button type="button" class="btn btn-peligro" id="btn-rechazar">Rechazar ingreso</button></div>` : ''}`,
     });
 
     // Zoom: clic para ampliar, centrado en el punto donde se hizo clic
@@ -135,10 +156,14 @@
       });
     }
 
-    if (puedeAutorizar) {
+    if (pendiente) {
       modal.elemento.querySelector('#btn-autorizar').addEventListener('click', () => {
         modal.cerrar();
         abrirAutorizacion(a, () => cargar());
+      });
+      modal.elemento.querySelector('#btn-rechazar').addEventListener('click', () => {
+        modal.cerrar();
+        abrirRechazo(a, () => cargar());
       });
     }
   }
@@ -172,6 +197,6 @@
   document.getElementById('filtro-hasta').value = fechaHoyISO();
   form.querySelectorAll('input[type=date]').forEach((i) => (i.defaultValue = i.value));
 
-  cargarCamaras();
+  cargarOpcionesFiltros();
   cargar();
 })();

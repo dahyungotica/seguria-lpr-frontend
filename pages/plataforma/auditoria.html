@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0a1120" />
+  <title>Auditoría · SegurIA-LPR</title>
+  <link rel="icon" href="../../assets/logo.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="../../css/base.css" />
+  <link rel="stylesheet" href="../../css/layout.css" />
+  <link rel="stylesheet" href="../../css/components.css" />
+</head>
+<body class="app" data-rol="admin_plataforma">
+  <!-- El sidebar y el header los genera js/layout.js según el rol -->
+  <div class="app-main">
+    <main class="contenido">
+      <section class="tarjeta">
+        <div class="seccion-cabecera">
+          <div>
+            <h2>Auditoría de la plataforma</h2>
+            <p>Registro inmutable de las acciones en todos los recintos y de las acciones de plataforma (creación de recintos y administradores, consultas de accesos).</p>
+          </div>
+        </div>
+
+        <div class="pestanas" role="tablist" aria-label="Vista de la auditoría">
+          <button type="button" class="pestana" role="tab" data-vista="propietarios" aria-selected="true">Cambios de propietarios</button>
+          <button type="button" class="pestana" role="tab" data-vista="todo" aria-selected="false">Bitácora completa</button>
+        </div>
+
+        <form class="barra-filtros" id="form-filtros">
+          <div class="campo">
+            <label for="filtro-recinto">Recinto</label>
+            <select class="input" id="filtro-recinto" name="recinto_id"><option value="">Todos</option></select>
+          </div>
+          <div class="campo">
+            <label for="filtro-desde">Desde</label>
+            <input class="input" type="date" id="filtro-desde" name="desde" />
+          </div>
+          <div class="campo">
+            <label for="filtro-hasta">Hasta</label>
+            <input class="input" type="date" id="filtro-hasta" name="hasta" />
+          </div>
+          <div class="campo">
+            <label for="filtro-autor">Autor</label>
+            <select class="input" id="filtro-autor" name="actor_rol"></select>
+          </div>
+          <div class="campo">
+            <label for="filtro-entidad">Sobre</label>
+            <select class="input" id="filtro-entidad" name="entidad"></select>
+          </div>
+          <div class="campo">
+            <label for="filtro-accion">Acción</label>
+            <select class="input" id="filtro-accion" name="accion"></select>
+          </div>
+          <div class="campo campo-busqueda">
+            <label for="filtro-busqueda">Buscar</label>
+            <input class="input" type="search" id="filtro-busqueda" name="busqueda" placeholder="Autor o detalle" autocomplete="off" />
+          </div>
+          <button type="reset" class="btn btn-secundario">Limpiar</button>
+        </form>
+
+        <div class="tabla-contenedor">
+          <table class="tabla">
+            <thead>
+              <tr><th>Fecha</th><th>Autor</th><th>Acción</th><th>Sobre</th><th>Detalle</th><th>Recinto</th></tr>
+            </thead>
+            <tbody id="tabla-auditoria"></tbody>
+          </table>
+        </div>
+        <div class="paginacion" id="paginacion"></div>
+      </section>
+    </main>
+  </div>
+
+  <script src="../../js/config.js"></script>
+  <script src="../../js/auth.js"></script>
+  <script src="../../js/api.js"></script>
+  <script src="../../js/ui.js"></script>
+  <script src="../../js/layout.js"></script>
+  <script src="../../js/pages/auditoria.js"></script>
+</body>
+</html>
