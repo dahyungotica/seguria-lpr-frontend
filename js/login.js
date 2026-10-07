@@ -126,50 +126,38 @@ formulario.addEventListener('submit', async (evento) => {
   }
 });
 
-// ---------- Elección de recinto (HU-19 / HU-20) ----------
-// Quien pertenece a varios recintos elige en cuál va a trabajar.
+// ---------- Elección de perfil (HU-19 / HU-20) ----------
+// Quien tiene más de un rol o recinto elige con cuál va a trabajar (ej. Guardia o Propietario).
 const pasoRecinto = document.getElementById('paso-recinto');
 const listaRecintos = document.getElementById('lista-recintos');
 
 function mostrarEleccionRecinto() {
   const usuario = obtenerUsuario();
-  document.getElementById('titulo-login').textContent = 'Elige un recinto';
+  const variosRecintos = obtenerRecintos().length > 1;
+  document.getElementById('titulo-login').textContent = '¿Cómo quieres entrar?';
   document.getElementById('recinto-saludo').textContent =
-    `Hola, ${usuario.nombre}. Tienes acceso a más de un recinto: ¿en cuál vas a trabajar?`;
+    `Hola, ${usuario.nombre}. Tu cuenta tiene más de un perfil` +
+    (variosRecintos ? ' en distintos recintos' : '') +
+    '. Elige con cuál vas a trabajar; podrás cambiarlo después desde el botón "Cambiar perfil".';
   formulario.classList.add('oculto');
   ocultarError();
   pasoRecinto.classList.remove('oculto');
 
-  listaRecintos.innerHTML = '';
-  for (const r of obtenerRecintos()) {
-    const boton = document.createElement('button');
-    boton.type = 'button';
-    boton.className = 'opcion-recinto';
-    boton.setAttribute('role', 'listitem');
-    boton.dataset.id = r.recinto_id;
-    const nombre = document.createElement('strong');
-    nombre.textContent = r.nombre;
-    const detalle = document.createElement('span');
-    detalle.textContent = [r.comuna, r.unidad && 'Unidad ' + r.unidad].filter(Boolean).join(' · ');
-    boton.append(nombre, detalle);
-    listaRecintos.appendChild(boton);
-  }
+  pintarPerfiles(listaRecintos, {
+    alElegir: async (recintoId, rol) => {
+      listaRecintos.querySelectorAll('button').forEach((b) => (b.disabled = true));
+      try {
+        const elegido = await seleccionarRecinto(recintoId, rol);
+        irAPaginaDeRol(elegido.rol);
+      } catch (error) {
+        mostrarError(error.message);
+        listaRecintos.querySelectorAll('button').forEach((b) => (b.disabled = false));
+      }
+    },
+  });
   const primero = listaRecintos.querySelector('button');
   if (primero) primero.focus();
 }
-
-listaRecintos.addEventListener('click', async (e) => {
-  const boton = e.target.closest('.opcion-recinto');
-  if (!boton) return;
-  listaRecintos.querySelectorAll('button').forEach((b) => (b.disabled = true));
-  try {
-    const usuario = await seleccionarRecinto(Number(boton.dataset.id));
-    irAPaginaDeRol(usuario.rol);
-  } catch (error) {
-    mostrarError(error.message);
-    listaRecintos.querySelectorAll('button').forEach((b) => (b.disabled = false));
-  }
-});
 
 document.getElementById('btn-otra-cuenta').addEventListener('click', () => {
   borrarSesion();

@@ -1,33 +1,38 @@
 // =====================================================================
-// Admin de recinto > Propietarios autorizados
-// Pestañas: Propietarios · Guardias · Unidades
+// Admin de recinto > Personas y unidades
+// Pestañas: Propietarios · Guardias · Administradores · Unidades
+//
+// Una persona tiene una sola cuenta y uno o varios roles por recinto: el mismo
+// formulario sirve para propietarios, guardias y administradores, y permite
+// asignar roles en todos los recintos que administra quien edita.
 // =====================================================================
 (function () {
-  const usuario = iniciarPagina({ roles: ['admin_recinto'], activo: 'propietarios', titulo: 'Propietarios autorizados' });
+  const usuario = iniciarPagina({ roles: ['admin_recinto'], activo: 'propietarios', titulo: 'Personas y unidades' });
   if (!usuario) return;
 
   const TIPOS_UNIDAD = [['departamento', 'Departamento'], ['casa', 'Casa'], ['oficina', 'Oficina'], ['local', 'Local'], ['otro', 'Otro']];
   const NOMBRE_TIPO_UNIDAD = Object.fromEntries(TIPOS_UNIDAD);
+  const COLUMNAS = 6;
 
-  // Configuración de cada pestaña de usuarios
+  // Cada pestaña de personas filtra por un rol en este recinto
   const PESTANAS = {
     propietarios: {
       rol: 'propietario',
       titulo: 'Propietarios autorizados',
       descripcion: 'Residentes del recinto. Cada propietario gestiona sus vehículos y visitas desde su cuenta; si no puede hacerlo, usa "Vehículos y visitas" para gestionarlos por él.',
-      boton: '+ Nuevo propietario',
       busqueda: 'Nombre, RUT, unidad o patente',
-      singular: 'propietario',
-      columnas: ['Propietario', 'RUT', 'Unidad', 'Vehículos', 'Estado', ''],
     },
     guardias: {
       rol: 'guardia',
       titulo: 'Guardias',
       descripcion: 'Personal que monitorea los accesos y puede autorizar ingresos manualmente.',
-      boton: '+ Nuevo guardia',
       busqueda: 'Nombre, RUT o email',
-      singular: 'guardia',
-      columnas: ['Guardia', 'RUT', 'Teléfono', 'Último acceso', 'Estado', ''],
+    },
+    administradores: {
+      rol: 'admin_recinto',
+      titulo: 'Administradores',
+      descripcion: 'Personas que administran este recinto. Puedes sumar administradores a cualquiera de los recintos a tu cargo.',
+      busqueda: 'Nombre, RUT o email',
     },
   };
 
@@ -40,6 +45,7 @@
   let pestanaActual = 'propietarios';
   let usuarios = [];
   let unidades = [];
+  let opciones = null; // recintos que administra, roles y unidades (para el formulario)
   let pagina = 1;
 
   // ---------- Pestañas ----------
@@ -58,20 +64,17 @@
     const config = PESTANAS[nombre];
     document.getElementById('titulo-usuarios').textContent = config.titulo;
     document.getElementById('descripcion-usuarios').textContent = config.descripcion;
-    document.getElementById('btn-nuevo-usuario').textContent = config.boton;
     filtroBusqueda.placeholder = config.busqueda;
     filtroBusqueda.value = '';
     filtroEstado.value = '';
-    document.getElementById('cabecera-usuarios').innerHTML =
-      '<tr>' + config.columnas.map((c) => (c ? `<th>${c}</th>` : '<th><span class="sr-only">Acciones</span></th>')).join('') + '</tr>';
     pagina = 1;
     cargarUsuarios();
   }
 
-  // ---------- Usuarios (propietarios / guardias) ----------
+  // ---------- Personas ----------
   async function cargarUsuarios() {
     const config = PESTANAS[pestanaActual];
-    filaEstado(tbodyUsuarios, 6, 'Cargando…');
+    filaEstado(tbodyUsuarios, COLUMNAS, 'Cargando…');
     try {
       const respuesta = await api.get(
         '/usuarios' + queryString({ rol: config.rol, busqueda: filtroBusqueda.value.trim(), activo: filtroEstado.value, pagina })
@@ -83,124 +86,135 @@
         cargarUsuarios();
       });
     } catch (error) {
-      filaEstado(tbodyUsuarios, 6, error.message);
+      filaEstado(tbodyUsuarios, COLUMNAS, error.message);
     }
   }
 
-  function vehiculosHtml(vehiculos) {
-    if (vehiculos.length === 0) return '<span class="texto-suave">Sin vehículos</span>';
-    return vehiculos
+  function vehiculosHtml(u) {
+    if (!u.roles.includes('propietario')) return '<span class="texto-suave">—</span>';
+    if (u.vehiculos.length === 0) return '<span class="texto-suave">Sin vehículos</span>';
+    return u.vehiculos
       .map((v) => `<span title="${escapar([v.marca, v.modelo, v.color].filter(Boolean).join(' '))}${v.activo ? '' : ' (inactivo)'}">${patenteChip(v.patente, v.activo)}</span>`)
       .join('');
   }
 
+  // Roles de la persona en ESTE recinto
+  const rolesAqui = (u) => u.vinculos.filter((v) => v.recinto_id === usuario.recinto_id);
+
   function dibujarUsuarios() {
     if (usuarios.length === 0) {
-      filaEstado(tbodyUsuarios, 6, `No hay ${pestanaActual} que coincidan con la búsqueda.`);
+      filaEstado(tbodyUsuarios, COLUMNAS, `No hay ${PESTANAS[pestanaActual].titulo.toLowerCase()} que coincidan con la búsqueda.`);
       return;
     }
-    const esPropietario = pestanaActual === 'propietarios';
     tbodyUsuarios.innerHTML = usuarios
-      .map(
-        (u) => `
+      .map((u) => {
+        const esYo = u.id === usuario.id;
+        const otros = u.otros_recintos ? ` · también en ${u.otros_recintos} recinto${u.otros_recintos > 1 ? 's' : ''} más` : '';
+        return `
         <tr class="${u.activo ? '' : 'inactivo'}">
-          <td><span class="principal">${escapar(u.nombre + ' ' + u.apellido)}</span>
-              <span class="secundario">${escapar(u.email)}${u.total_recintos > 1 ? ` · también en otro${u.total_recintos > 2 ? 's' : ''} ${u.total_recintos - 1} recinto${u.total_recintos > 2 ? 's' : ''}` : ''}</span></td>
+          <td><span class="principal">${escapar(u.nombre + ' ' + u.apellido)}${esYo ? ' <span class="badge badge-info">Tú</span>' : ''}</span>
+              <span class="secundario">${escapar(u.email + otros)}</span></td>
           <td>${escapar(formatearRut(u.rut))}</td>
-          ${
-            esPropietario
-              ? `<td>${escapar(u.unidad || '—')}</td><td>${vehiculosHtml(u.vehiculos)}</td>`
-              : `<td>${escapar(u.telefono || '—')}</td>
-                 <td title="${escapar(formatearFecha(u.ultimo_login))}">${escapar(tiempoRelativo(u.ultimo_login))}</td>`
-          }
+          <td><div class="chips-roles">${chipsRoles(rolesAqui(u))}</div></td>
+          <td>${vehiculosHtml(u)}</td>
           <td>${badgeActivo(u.activo)}</td>
           <td class="acciones">
-            ${esPropietario ? `<button type="button" class="btn-texto" data-gestionar="${u.id}">Vehículos y visitas</button>` : ''}
-            <button type="button" class="btn-texto" data-editar="${u.id}">Editar</button>
-            <button type="button" class="btn-texto${u.activo ? ' peligro' : ''}" data-estado="${u.id}">${u.activo ? 'Desactivar' : 'Activar'}</button>
+            ${u.roles.includes('propietario') ? `<button type="button" class="btn-texto" data-gestionar="${u.id}">Vehículos y visitas</button>` : ''}
+            <button type="button" class="btn-texto" data-editar="${u.id}">${esYo ? 'Mis roles' : 'Editar'}</button>
+            ${esYo ? '' : `<button type="button" class="btn-texto${u.activo ? ' peligro' : ''}" data-estado="${u.id}">${u.activo ? 'Desactivar' : 'Activar'}</button>`}
           </td>
-        </tr>`
-      )
+        </tr>`;
+      })
       .join('');
   }
 
-  async function obtenerUnidadesActivas() {
-    if (unidades.length === 0) unidades = await api.get('/unidades');
-    return unidades;
+  async function obtenerOpciones() {
+    if (!opciones) opciones = await api.get('/usuarios/opciones');
+    return opciones;
   }
 
   async function abrirFormularioUsuario(u) {
-    const config = PESTANAS[pestanaActual];
     const edicion = Boolean(u);
-    let extras = '';
-
-    if (config.rol === 'propietario') {
-      let lista;
-      try {
-        lista = await obtenerUnidadesActivas();
-      } catch (error) {
-        toast(error.message, 'error');
-        return;
-      }
-      const disponibles = lista.filter((x) => x.activo || (u && x.id === u.unidad_id));
-      if (disponibles.length === 0) {
-        toast('Primero crea una unidad en la pestaña "Unidades".', 'error');
-        return;
-      }
-      extras = campoHtml({
-        nombre: 'unidad_id', etiqueta: 'Unidad', valor: u && u.unidad_id, requerido: true, completo: true,
-        opciones: [['', 'Selecciona una unidad…'], ...disponibles.map((x) => [x.id, x.identificador])],
-        atributos: 'data-tipo="numero"',
-      });
+    // La propia cuenta (datos y roles) se edita desde Mi perfil
+    if (edicion && u.id === usuario.id) {
+      window.location.href = CONFIG.RAIZ + 'pages/perfil.html#roles';
+      return;
     }
+    let datosOpciones;
+    try {
+      datosOpciones = await obtenerOpciones();
+    } catch (error) {
+      toast(error.message, 'error');
+      return;
+    }
+    const nombre = edicion ? u.nombre + ' ' + u.apellido : '';
+    const seccion = seccionRolesHtml(datosOpciones, {
+      vinculos: edicion ? u.vinculos : [],
+      preseleccion: edicion ? null : { recinto_id: usuario.recinto_id, rol: PESTANAS[pestanaActual].rol },
+    });
 
     const modal = abrirModal({
-      titulo: edicion ? `Editar ${config.singular}` : `Nuevo ${config.singular}`,
+      titulo: edicion ? 'Editar a ' + nombre : 'Nueva persona',
+      ancho: true,
       cuerpo:
-        formularioUsuarioHtml(u, { edicion, extras }) +
-        (config.rol === 'propietario' && !edicion
-          ? '<div class="alerta alerta-info">El propietario podrá registrar sus vehículos y visitas con su cuenta. Si no puede, después de crearlo usa "Vehículos y visitas".</div>'
+        formularioUsuarioHtml(u, { edicion }) +
+        `<div class="form-grid">${seccion}</div>` +
+        (edicion && u.otros_recintos
+          ? '<p class="texto-suave">Solo ves y cambias sus roles en los recintos que administras; los demás no se modifican.</p>'
           : ''),
-      textoEnviar: edicion ? 'Guardar cambios' : 'Crear ' + config.singular,
-      alEnviar: async (datos) => {
+      textoEnviar: edicion ? 'Guardar cambios' : 'Crear persona',
+      alEnviar: async (datos, form) => {
+        datos.roles = leerRoles(form);
+        if (!edicion && datos.roles.length === 0) throw new Error('Marca al menos un rol en algún recinto.');
         if (edicion) {
           if (!datos.password) delete datos.password;
-          await api.put('/usuarios/' + u.id, datos);
-        } else {
-          const creado = await api.post('/usuarios', { ...datos, rol: config.rol });
-          // HU-19 / HU-20: si la persona ya tenía cuenta en otro recinto, solo se vinculó
-          if (creado.vinculado) {
-            toast(`${creado.nombre} ${creado.apellido} ya tenía cuenta en otro recinto: quedó vinculado a este`, 'exito');
-            unidades = [];
-            cargarUsuarios();
-            return;
+          if (datos.roles.length === 0) {
+            const ok = await confirmar({
+              titulo: 'Quitar todos los roles',
+              mensaje: `${nombre} dejará de tener acceso a tus recintos. ¿Continuar?`,
+              textoConfirmar: 'Quitar roles',
+              peligro: true,
+            });
+            if (!ok) throw new Error('No se guardaron los cambios.');
           }
+          const resultado = await api.put('/usuarios/' + u.id, datos);
+          toast(resultado.quitado ? `${nombre} ya no tiene roles en tus recintos` : 'Cambios guardados', 'exito');
+        } else {
+          const creado = await api.post('/usuarios', datos);
+          // Si la persona ya tenía cuenta, solo se le agregaron los roles (no se crea otra cuenta)
+          toast(
+            creado.vinculado
+              ? `${creado.nombre} ${creado.apellido} ya tenía cuenta: se le agregaron los roles`
+              : `${creado.nombre} ${creado.apellido} quedó registrado`,
+            'exito'
+          );
         }
-        toast(edicion ? 'Cambios guardados' : `${config.singular[0].toUpperCase() + config.singular.slice(1)} creado`, 'exito');
-        unidades = []; // los contadores de las unidades cambiaron
+        opciones = null; // los contadores de las unidades cambiaron
+        unidades = [];
         cargarUsuarios();
       },
     });
     activarGeneradorPassword(modal);
+    activarSeccionRoles(modal);
   }
 
   async function cambiarEstadoUsuario(u) {
     const activar = !u.activo;
     const nombre = u.nombre + ' ' + u.apellido;
-    const consecuencia =
-      pestanaActual === 'propietarios'
-        ? ' No podrá iniciar sesión y sus vehículos dejarán de estar autorizados.'
-        : ' No podrá iniciar sesión.';
+    const roles = rolesAqui(u).map(textoRol).join(', ');
+    const consecuencia = u.roles.includes('propietario') ? ' Sus vehículos dejarán de estar autorizados.' : '';
     const ok = await confirmar({
-      titulo: activar ? 'Activar cuenta' : 'Desactivar cuenta',
-      mensaje: activar ? `¿Activar la cuenta de ${nombre}?` : `¿Desactivar la cuenta de ${nombre}?${consecuencia}`,
+      titulo: activar ? 'Activar en este recinto' : 'Desactivar en este recinto',
+      mensaje: activar
+        ? `¿Activar a ${nombre} en este recinto (${roles})?`
+        : `¿Desactivar a ${nombre} en este recinto (${roles})? No podrá entrar con esos perfiles.${consecuencia} Sus otros recintos no cambian.`,
       textoConfirmar: activar ? 'Activar' : 'Desactivar',
       peligro: !activar,
     });
     if (!ok) return;
     try {
       await api.patch(`/usuarios/${u.id}/estado`, { activo: activar });
-      toast(activar ? 'Cuenta activada' : 'Cuenta desactivada', 'exito');
+      toast(activar ? 'Persona activada' : 'Persona desactivada', 'exito');
       cargarUsuarios();
     } catch (error) {
       toast(error.message, 'error');
@@ -432,5 +446,5 @@
 
   // Pestaña inicial según el #hash (ej. propietarios.html#guardias)
   const inicial = location.hash.slice(1);
-  cambiarPestana(['propietarios', 'guardias', 'unidades'].includes(inicial) ? inicial : 'propietarios');
+  cambiarPestana(['propietarios', 'guardias', 'administradores', 'unidades'].includes(inicial) ? inicial : 'propietarios');
 })();

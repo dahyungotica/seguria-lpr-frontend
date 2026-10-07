@@ -13,11 +13,11 @@ Interfaz web de **SegurIA-LPR**, sistema de control de acceso vehicular por reco
 | Rol | Sección | Qué permite |
 |---|---|---|
 | Admin de plataforma | Recintos | Crear, editar, buscar y activar/desactivar recintos |
-| Admin de plataforma | Administradores | Crear y editar administradores de recinto, generar contraseña, filtrar por recinto |
+| Admin de plataforma | Administradores | Crear y editar administradores marcando **todos los recintos a su cargo** en un solo formulario; generar contraseña, filtrar por recinto |
 | Admin de plataforma | Accesos de recintos | Historial de accesos de todos los recintos con filtro por recinto; cada consulta queda en la auditoría (HU-23) |
 | Admin de plataforma | Auditoría | Bitácora de todos los recintos y de las acciones de plataforma |
 | Admin de recinto | Panel | Accesos de hoy, gráfico de 7 días, resumen del recinto, últimas detecciones en tiempo real y estado de equipos |
-| Admin de recinto | Propietarios autorizados | Pestañas de propietarios (con sus patentes), guardias y unidades. Botón **Vehículos y visitas** para gestionarlos a nombre de un propietario que no puede usar la plataforma |
+| Admin de recinto | Personas y unidades | Pestañas de propietarios (con sus patentes), guardias, administradores y unidades. **Un solo formulario por persona**: datos básicos + roles (Administrador, Guardia, Propietario con su unidad) en cada recinto que administra. Botón **Vehículos y visitas** para gestionarlos a nombre de un propietario que no puede usar la plataforma |
 | Admin de recinto | Cámaras y equipos | Gestionar cámaras y Raspberry Pi, con API key que se muestra una sola vez |
 | Admin de recinto | Historial de accesos | Filtros por fecha, patente, resultado, cámara y sentido; detalle con captura y zoom |
 | Admin de recinto | Notificación de cambios | Cambios de vehículos (antes → después), visitas programadas y accesos no autorizados; marcar como leídas, contador en el menú |
@@ -28,6 +28,7 @@ Interfaz web de **SegurIA-LPR**, sistema de control de acceso vehicular por reco
 | Guardia | Monitor en vivo | Captura siempre visible con zoom, detecciones en tiempo real, visitas de hoy; atiende las alertas autorizando (detalle obligatorio) o rechazando (HU-31) |
 | Guardia | Historial de accesos | Historial del recinto; puede autorizar desde el detalle un acceso denegado |
 | Guardia | Propietarios | Consulta de solo lectura: unidad, contacto y patentes |
+| Todos | Mi perfil | Sus datos, cambio de contraseña y sus recintos y roles (entrar con otro perfil). El admin de recinto puede **agregarse como guardia o propietario** en sus recintos |
 
 ## Documentación
 
@@ -42,7 +43,8 @@ seguria-lpr-frontend/
 ├── index.html              # Login
 ├── pages/
 │   ├── plataforma/         # Admin de plataforma: recintos, administradores
-│   ├── admin/              # Admin de recinto: panel, propietarios, cámaras, historial, notificaciones
+│   ├── admin/              # Admin de recinto: panel, personas y unidades, cámaras, historial, notificaciones
+│   ├── perfil.html         # Mi perfil (todos los roles)
 │   ├── propietario/        # Propietario: vehículos, visitas, historial
 │   └── guardia/            # Guardia: monitor, historial, propietarios
 ├── css/
@@ -56,7 +58,7 @@ seguria-lpr-frontend/
 │   ├── api.js              # fetch con token JWT (401 → vuelve al login)
 │   ├── layout.js           # Genera sidebar y header según el rol
 │   ├── ui.js               # Utilidades: modales, toasts, formato, paginación
-│   ├── usuarios-form.js    # Formulario de usuario compartido
+│   ├── usuarios-form.js    # Formulario de persona compartido (datos + roles por recinto)
 │   ├── socket.js           # Cliente Socket.io (tiempo real)
 │   ├── login.js            # Lógica del formulario de login
 │   ├── autorizacion.js     # Modal de autorización manual (guardia)
@@ -90,7 +92,9 @@ seguria-lpr-frontend/
 
 ## Cómo funciona la sesión
 
-- Quien pertenece a **varios recintos** (propietario o guardia) elige el recinto después de iniciar sesión y puede cambiarlo con el botón **Cambiar recinto** del encabezado (HU-19, HU-20).
+- Cada persona tiene **una sola cuenta**, aunque tenga varios roles o recintos (ej. administradora de 3 recintos y guardia en 1).
+  Cada recinto + rol es un **perfil**: con varios, después de iniciar sesión elige con cuál entrar y puede cambiarlo
+  con el botón **Cambiar perfil** del encabezado o desde **Mi perfil**, sin volver a escribir la contraseña (HU-19, HU-20).
 
 - Al iniciar sesión se guardan `seguria_token` y `seguria_usuario` en `localStorage`.
 - Cada página interna llama a `iniciarPagina({ roles: [...] })`, que usa `requireRole()`:

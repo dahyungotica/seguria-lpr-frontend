@@ -952,10 +952,220 @@ input[type="date"].input {
   background: rgba(245, 165, 36, 0.08);
 }
 
+/* ---------- Roles por recinto (formulario de personas y Mi perfil) ---------- */
+.roles-recintos {
+  margin: 0.25rem 0 1rem;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.roles-recintos legend {
+  padding: 0;
+  margin-bottom: 0.2rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-texto-suave);
+}
+
+.roles-recintos legend .obligatorio {
+  color: var(--color-peligro);
+}
+
+.roles-recintos > .ayuda {
+  margin: 0 0 0.6rem;
+  font-size: 0.78rem;
+  color: var(--color-texto-tenue);
+}
+
+.rol-recinto {
+  padding: 0.75rem 0.85rem;
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-sm);
+  background: var(--color-fondo);
+}
+
+.rol-recinto + .rol-recinto {
+  margin-top: 0.5rem;
+}
+
+.rol-recinto-nombre {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.rol-opciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+/* Casilla con forma de botón: se marca el rol con un clic */
+.chip-check {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.8rem;
+  border: 1px solid var(--color-borde);
+  border-radius: 999px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+}
+
+.chip-check input {
+  width: 1rem;
+  height: 1rem;
+  margin: 0;
+  accent-color: var(--color-primario);
+}
+
+.chip-check:has(input:checked) {
+  border-color: var(--color-primario);
+  background: var(--color-primario-suave);
+  color: #bfdbfe;
+}
+
+.chip-check:has(input:focus-visible) {
+  outline: 2px solid var(--color-primario);
+  outline-offset: 2px;
+}
+
+.chip-check.deshabilitado {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.rol-unidad {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin-top: 0.6rem;
+  max-width: 320px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-texto-suave);
+}
+
+/* Lista de recintos a cargo (admin de plataforma) */
+.lista-check-recintos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 0.5rem;
+}
+
+.check-recinto {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.65rem 0.8rem;
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-sm);
+  background: var(--color-fondo);
+  cursor: pointer;
+}
+
+.check-recinto input {
+  margin-top: 0.2rem;
+  accent-color: var(--color-primario);
+}
+
+.check-recinto:has(input:checked) {
+  border-color: var(--color-primario);
+  background: var(--color-primario-suave);
+}
+
+.check-recinto .secundario {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--color-texto-suave);
+}
+
+/* Etiquetas de rol en las tablas */
+.chips-roles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.chip-rol {
+  display: inline-block;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+  background: var(--color-superficie-2, #1a2540);
+  color: var(--color-texto);
+}
+
+.chip-admin_recinto {
+  background: rgba(47, 124, 246, 0.16);
+  color: #bfdbfe;
+}
+
+.chip-guardia {
+  background: rgba(245, 165, 36, 0.14);
+  color: #fde68a;
+}
+
+.chip-propietario {
+  background: rgba(34, 197, 94, 0.14);
+  color: #bbf7d0;
+}
+
+.chip-rol.inactivo {
+  background: transparent;
+  border: 1px dashed var(--color-borde);
+  color: var(--color-texto-tenue);
+  text-decoration: line-through;
+}
+
+/* ---------- Mi perfil ---------- */
+.perfil-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1rem;
+  align-content: start;
+}
+
+.perfil-grid .tarjeta + .tarjeta {
+  margin-top: 0;
+}
+
+.perfil-roles-tarjeta {
+  grid-column: 1 / -1;
+}
+
+.acciones-formulario {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.etiqueta-dato {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-texto-suave);
+}
+
+.dato-fijo {
+  padding: 0.6rem 0;
+  font-weight: 600;
+}
+
 /* ---------- Responsive ---------- */
 @media (max-width: 640px) {
   .form-grid {
     grid-template-columns: 1fr;
+  }
+
+  .perfil-grid {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .barra-filtros .campo {

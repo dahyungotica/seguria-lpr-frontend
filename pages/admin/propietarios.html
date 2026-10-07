@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#0a1120" />
-  <title>Propietarios autorizados · SegurIA-LPR</title>
+  <title>Personas y unidades · SegurIA-LPR</title>
   <link rel="icon" href="../../assets/logo.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="../../css/base.css" />
   <link rel="stylesheet" href="../../css/layout.css" />
@@ -18,17 +18,18 @@
         <div class="pestanas" role="tablist" aria-label="Personas y unidades del recinto">
           <button type="button" class="pestana" role="tab" id="tab-propietarios" aria-controls="panel-usuarios" data-tab="propietarios">Propietarios</button>
           <button type="button" class="pestana" role="tab" id="tab-guardias" aria-controls="panel-usuarios" data-tab="guardias">Guardias</button>
+          <button type="button" class="pestana" role="tab" id="tab-administradores" aria-controls="panel-usuarios" data-tab="administradores">Administradores</button>
           <button type="button" class="pestana" role="tab" id="tab-unidades" aria-controls="panel-unidades" data-tab="unidades">Unidades</button>
         </div>
 
-        <!-- Propietarios y guardias comparten la misma tabla -->
+        <!-- Propietarios, guardias y administradores comparten la misma tabla y el mismo formulario -->
         <div id="panel-usuarios" role="tabpanel">
           <div class="seccion-cabecera">
             <div>
               <h2 id="titulo-usuarios"></h2>
               <p id="descripcion-usuarios"></p>
             </div>
-            <button type="button" class="btn btn-primario" id="btn-nuevo-usuario"></button>
+            <button type="button" class="btn btn-primario" id="btn-nuevo-usuario">+ Nueva persona</button>
           </div>
 
           <div class="barra-filtros">
@@ -48,7 +49,9 @@
 
           <div class="tabla-contenedor">
             <table class="tabla">
-              <thead id="cabecera-usuarios"></thead>
+              <thead>
+                <tr><th>Persona</th><th>RUT</th><th>Roles en este recinto</th><th>Vehículos</th><th>Estado</th><th><span class="sr-only">Acciones</span></th></tr>
+              </thead>
               <tbody id="tabla-usuarios"></tbody>
             </table>
           </div>
