@@ -218,7 +218,8 @@ function abrirCambioRecinto() {
 }
 
 // ---------- Avisos en pantalla en todas las secciones (guardia y admin de recinto) ----------
-// - Guardia: un ingreso no autorizado le llega en cualquier sección, con acceso directo al monitor.
+// - Guardia: cada ingreso le llega en cualquier sección, con acceso directo al monitor
+//   (no autorizado: queda hasta que se atiende; autorizado o visita: se va solo a los 45 s).
 // - Guardia y admin: aviso cuando una Raspberry Pi pierde la señal y cuando la recupera.
 // Las páginas que necesitan reaccionar al estado de los equipos escuchan el evento "seguria:dispositivo".
 
@@ -254,9 +255,10 @@ function quitarAviso(clave) {
   });
 }
 
-// Aviso que queda en pantalla hasta que se cierra. "valor" identifica la versión del aviso:
-// si el usuario lo cerró, no se vuelve a mostrar en esta sesión mientras el valor sea el mismo.
-function mostrarAviso({ clave, valor = '1', tipo = '', titulo, texto, accion }) {
+// Aviso que queda en pantalla hasta que se cierra (o hasta "duracion" ms, si se indica).
+// "valor" identifica la versión del aviso: si el usuario lo cerró, no se vuelve a mostrar
+// en esta sesión mientras el valor sea el mismo.
+function mostrarAviso({ clave, valor = '1', tipo = '', titulo, texto, accion, duracion }) {
   if (avisosCerrados()[clave] === valor) return;
   quitarAviso(clave);
 
@@ -279,7 +281,7 @@ function mostrarAviso({ clave, valor = '1', tipo = '', titulo, texto, accion }) 
   aviso.querySelector('.aviso-texto').textContent = texto;
   if (accion) {
     const enlace = document.createElement('a');
-    enlace.className = 'btn btn-primario btn-sm';
+    enlace.className = 'btn btn-sm ' + (accion.secundario ? 'btn-secundario' : 'btn-primario');
     enlace.href = accion.href;
     enlace.textContent = accion.texto;
     aviso.querySelector('.aviso-cuerpo').appendChild(enlace);
@@ -289,6 +291,7 @@ function mostrarAviso({ clave, valor = '1', tipo = '', titulo, texto, accion }) 
     aviso.remove();
   });
   contenedor.prepend(aviso);
+  if (duracion) setTimeout(() => aviso.remove(), duracion);
 }
 
 function cargarScript(src) {
@@ -334,6 +337,27 @@ function alCambiarEstadoEquipo(d) {
     recordarAvisoCerrado(clave);
     if (habiaAviso) toast(`Señal recuperada: ${d.camara_nombre}`, 'exito');
   }
+}
+
+// Ingreso permitido (vehículo registrado o visita): aviso informativo que se va solo a los 45 s,
+// igual que en el monitor. Se muestran como máximo los 3 más recientes.
+const MAX_AVISOS_PERMITIDOS = 3;
+
+function avisoIngresoPermitido(a) {
+  const quien = a.nombre_visitante
+    ? `Visita de ${a.nombre_visitante}`
+    : a.propietario_nombre || 'Ingreso autorizado';
+  mostrarAviso({
+    clave: 'acceso-' + a.id,
+    tipo: 'exito',
+    titulo: `Patente ${a.patente_detectada} · ${a.resultado === 'visita' ? 'Visita' : 'Autorizado'}`,
+    texto: `${quien}${a.unidad ? ' (' + a.unidad + ')' : ''} · ${a.camara_nombre || 'Cámara'} · ${formatearHora(a.fecha_hora)}`,
+    accion: { texto: 'Ver en el monitor', href: CONFIG.RAIZ + PAGINA_MONITOR + '?acceso=' + a.id, secundario: true },
+    duracion: 45 * 1000,
+  });
+  document.querySelectorAll('.aviso.exito').forEach((el, i) => {
+    if (i >= MAX_AVISOS_PERMITIDOS) el.remove();
+  });
 }
 
 function avisoIngresoNoAutorizado(a) {
@@ -383,6 +407,7 @@ async function iniciarAvisosTiempoReal(usuario, activo) {
   if (esGuardia && !enMonitor) {
     socket.on('acceso:nuevo', (a) => {
       if (a.resultado === 'denegado' && a.alerta_estado === 'pendiente') avisoIngresoNoAutorizado(a);
+      else if (a.resultado === 'autorizado' || a.resultado === 'visita') avisoIngresoPermitido(a);
     });
     // Si otro guardia atendió la alerta, el aviso ya no corresponde
     socket.on('acceso:actualizado', (a) => {

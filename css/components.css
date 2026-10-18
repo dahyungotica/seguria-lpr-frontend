@@ -836,6 +836,10 @@ input[type="date"].input {
   border-left-color: var(--color-peligro);
 }
 
+.aviso.exito {
+  border-left-color: var(--color-exito);
+}
+
 .aviso-cuerpo {
   display: flex;
   flex: 1;
