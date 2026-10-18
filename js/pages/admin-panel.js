@@ -123,7 +123,7 @@
         (c) => `<li><span><span class="principal">${escapar(c.nombre)}</span>
           <span class="secundario">Cámara de ${escapar(c.sentido)} · ${
             c.asignada ? 'equipo ' + escapar(c.dispositivo_nombre) : 'sin Raspberry Pi asignada'
-          }</span></span>${badge(c.asignada ? c.estado : 'pendiente')}</li>`
+          }</span></span>${badge(estadoCamara(c))}</li>`
       ),
       ...dispositivos.map(
         (d) => `<li><span><span class="principal">${escapar(d.nombre)}</span>
@@ -184,6 +184,13 @@
       cargarContadorNotificaciones();
     });
   }
+
+  // Una Raspberry Pi se conectó o perdió la señal (el aviso en pantalla lo muestra layout.js)
+  document.addEventListener('seguria:dispositivo', () => {
+    Promise.all([api.get('/camaras'), api.get('/dispositivos')])
+      .then(([camaras, dispositivos]) => dibujarEquipos(camaras, dispositivos))
+      .catch(() => {});
+  });
 
   cargar();
 })();

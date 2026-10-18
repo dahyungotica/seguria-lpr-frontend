@@ -89,6 +89,8 @@ const ESTADOS = {
   activa: ['Activa', 'exito'],
   inactiva: ['Inactiva', ''],
   falla: ['Falla', 'peligro'],
+  // Cámara activa cuyo equipo no está conectado
+  sin_senal: ['Sin señal', 'peligro'],
   // Cámara sin Raspberry Pi (o equipo sin cámara): registrado, pero no se puede usar
   pendiente: ['Pendiente de asignación', 'alerta'],
   activo: ['Activo', 'exito'],
@@ -99,6 +101,13 @@ const ESTADOS = {
 function badge(clave) {
   const [texto, tipo] = ESTADOS[clave] || [clave, ''];
   return `<span class="badge${tipo ? ' badge-' + tipo : ''}">${escapar(texto)}</span>`;
+}
+
+// Estado que se muestra de una cámara: sin equipo queda pendiente; activa pero con su equipo desconectado, "Sin señal"
+function estadoCamara(c) {
+  if (!c.asignada) return 'pendiente';
+  if (c.estado === 'activa' && c.dispositivo_estado !== 'activo') return 'sin_senal';
+  return c.estado;
 }
 
 // Estado de una visita (calculado por el backend en estado_actual)

@@ -23,9 +23,9 @@ Interfaz web de **SegurIA-LPR**, sistema de control de acceso vehicular por reco
 | Admin de recinto | Notificación de cambios | Cambios de vehículos (antes → después), visitas programadas y accesos no autorizados; marcar como leídas, contador en el menú |
 | Admin de recinto | Auditoría | Pestañas «Cambios de propietarios» (HU-26) y «Bitácora completa» (HU-5), con detalle antes/después |
 | Propietario | Mis vehículos | Agregar, editar, activar/desactivar y eliminar vehículos sin aprobación (se notifica al admin) |
-| Propietario | Mis visitas | Programar visitas de hasta 24 horas con patente opcional, editarlas y cancelarlas (el admin puede dar hasta 30 días, HU-28) |
+| Propietario | Mis visitas | Programar visitas de 5 minutos a 24 horas con patente opcional, editarlas y cancelarlas (el admin puede dar hasta 30 días, HU-28) |
 | Propietario | Historial de accesos | Solo los accesos de sus vehículos y visitas |
-| Guardia | Monitor en vivo | Captura siempre visible con zoom, detecciones en tiempo real, visitas de hoy; atiende las alertas autorizando (detalle obligatorio) o rechazando (HU-31) |
+| Guardia | Monitor | Detecciones en tiempo real con captura y zoom, visitas de hoy; un acceso permitido se muestra 45 s y una alerta queda en pantalla hasta que el guardia la autoriza (detalle obligatorio) o la rechaza (HU-31). Desde cualquier sección recibe avisos de ingresos no autorizados y de cámaras sin señal |
 | Guardia | Historial de accesos | Historial del recinto; puede autorizar desde el detalle un acceso denegado |
 | Guardia | Propietarios | Consulta de solo lectura: unidad, contacto y patentes |
 | Todos | Mi perfil | Sus datos, cambio de contraseña y sus recintos y roles (entrar con otro perfil). El admin de recinto puede **agregarse como guardia o propietario** en sus recintos |

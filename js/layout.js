@@ -3,7 +3,7 @@
 // Requiere: config.js, auth.js (y api.js)
 //
 // Uso en cada página:
-//   iniciarPagina({ roles: ['guardia'], activo: 'monitor', titulo: 'Monitor en vivo' });
+//   iniciarPagina({ roles: ['guardia'], activo: 'monitor', titulo: 'Monitor' });
 // =====================================================================
 
 // Íconos SVG simples (trazos de 24x24)
@@ -48,7 +48,7 @@ const MENUS = {
     { id: 'historial', texto: 'Historial de accesos', icono: 'historial', href: 'pages/propietario/historial.html' },
   ],
   guardia: [
-    { id: 'monitor', texto: 'Monitor en vivo', icono: 'monitor', href: 'pages/guardia/monitor.html' },
+    { id: 'monitor', texto: 'Monitor', icono: 'monitor', href: 'pages/guardia/monitor.html' },
     { id: 'historial', texto: 'Historial de accesos', icono: 'historial', href: 'pages/guardia/historial.html' },
     { id: 'propietarios', texto: 'Propietarios', icono: 'usuarios', href: 'pages/guardia/propietarios.html' },
   ],
@@ -159,6 +159,7 @@ function iniciarPagina({ roles, activo, titulo }) {
   activarMenuMovil();
 
   if (usuario.rol === 'admin_recinto') cargarContadorNotificaciones();
+  if (usuario.rol === 'guardia' || usuario.rol === 'admin_recinto') iniciarAvisosTiempoReal(usuario, activo);
 
   document.body.classList.add('listo');
   return usuario;
@@ -214,4 +215,178 @@ function abrirCambioRecinto() {
     actual: { recinto_id: usuario.recinto_id, rol: usuario.rol },
     alElegir: entrarConPerfil,
   });
+}
+
+// ---------- Avisos en pantalla en todas las secciones (guardia y admin de recinto) ----------
+// - Guardia: un ingreso no autorizado le llega en cualquier sección, con acceso directo al monitor.
+// - Guardia y admin: aviso cuando una Raspberry Pi pierde la señal y cuando la recupera.
+// Las páginas que necesitan reaccionar al estado de los equipos escuchan el evento "seguria:dispositivo".
+
+const PAGINA_MONITOR = 'pages/guardia/monitor.html';
+const CLAVE_AVISOS_CERRADOS = 'seguria_avisos_cerrados';
+
+function avisosCerrados() {
+  try {
+    return JSON.parse(sessionStorage.getItem(CLAVE_AVISOS_CERRADOS)) || {};
+  } catch (e) {
+    return {};
+  }
+}
+
+function recordarAvisoCerrado(clave, valor) {
+  try {
+    const cerrados = avisosCerrados();
+    if (valor === undefined) delete cerrados[clave];
+    else cerrados[clave] = valor;
+    sessionStorage.setItem(CLAVE_AVISOS_CERRADOS, JSON.stringify(cerrados));
+  } catch (e) {
+    // Sin sessionStorage el aviso simplemente vuelve a aparecer al cambiar de página
+  }
+}
+
+function existeAviso(clave) {
+  return Array.from(document.querySelectorAll('.aviso')).some((el) => el.dataset.clave === clave);
+}
+
+function quitarAviso(clave) {
+  document.querySelectorAll('.aviso').forEach((el) => {
+    if (el.dataset.clave === clave) el.remove();
+  });
+}
+
+// Aviso que queda en pantalla hasta que se cierra. "valor" identifica la versión del aviso:
+// si el usuario lo cerró, no se vuelve a mostrar en esta sesión mientras el valor sea el mismo.
+function mostrarAviso({ clave, valor = '1', tipo = '', titulo, texto, accion }) {
+  if (avisosCerrados()[clave] === valor) return;
+  quitarAviso(clave);
+
+  let contenedor = document.querySelector('.avisos');
+  if (!contenedor) {
+    contenedor = document.createElement('div');
+    contenedor.className = 'avisos';
+    document.body.appendChild(contenedor);
+  }
+
+  const aviso = document.createElement('div');
+  aviso.className = 'aviso' + (tipo ? ' ' + tipo : '');
+  aviso.setAttribute('role', 'alert');
+  aviso.dataset.clave = clave;
+  aviso.innerHTML =
+    '<div class="aviso-cuerpo"><strong class="aviso-titulo"></strong><span class="aviso-texto"></span></div>' +
+    '<button type="button" class="aviso-cerrar" aria-label="Cerrar aviso">&times;</button>';
+  // textContent evita inyectar HTML con datos del servidor
+  aviso.querySelector('.aviso-titulo').textContent = titulo;
+  aviso.querySelector('.aviso-texto').textContent = texto;
+  if (accion) {
+    const enlace = document.createElement('a');
+    enlace.className = 'btn btn-primario btn-sm';
+    enlace.href = accion.href;
+    enlace.textContent = accion.texto;
+    aviso.querySelector('.aviso-cuerpo').appendChild(enlace);
+  }
+  aviso.querySelector('.aviso-cerrar').addEventListener('click', () => {
+    recordarAvisoCerrado(clave, valor);
+    aviso.remove();
+  });
+  contenedor.prepend(aviso);
+}
+
+function cargarScript(src) {
+  return new Promise((resolver, rechazar) => {
+    const script = document.createElement('script');
+    script.src = src;
+    if (/^https?:/.test(src)) script.crossOrigin = 'anonymous';
+    script.onload = resolver;
+    script.onerror = rechazar;
+    document.head.appendChild(script);
+  });
+}
+
+// Algunas páginas no incluyen Socket.io: se carga aquí cuando hace falta
+async function asegurarSocket() {
+  if (typeof io === 'undefined') await cargarScript('https://cdn.socket.io/4.8.1/socket.io.min.js');
+  if (typeof conectarSocket === 'undefined') await cargarScript(CONFIG.RAIZ + 'js/socket.js');
+  return conectarSocket();
+}
+
+// Aviso de una cámara cuyo equipo no tiene señal
+function avisoEquipoSinSenal(d) {
+  mostrarAviso({
+    clave: 'equipo-' + d.id,
+    valor: 'sin_conexion',
+    tipo: 'peligro',
+    titulo: 'Cámara sin señal',
+    texto: `${d.camara_nombre} · equipo ${d.nombre}. Sus detecciones no llegarán al sistema hasta que se recupere la conexión.`,
+  });
+}
+
+// Solo se avisa por los equipos que atienden una cámara (un equipo sin cámara no está en uso)
+function alCambiarEstadoEquipo(d) {
+  document.dispatchEvent(new CustomEvent('seguria:dispositivo', { detail: d }));
+  if (!d.camara_id) return;
+  const clave = 'equipo-' + d.id;
+  if (d.estado === 'sin_conexion') {
+    recordarAvisoCerrado(clave); // desconexión nueva: se vuelve a avisar aunque antes lo hubiera cerrado
+    avisoEquipoSinSenal(d);
+  } else if (d.estado === 'activo') {
+    const habiaAviso = existeAviso(clave);
+    quitarAviso(clave);
+    recordarAvisoCerrado(clave);
+    if (habiaAviso) toast(`Señal recuperada: ${d.camara_nombre}`, 'exito');
+  }
+}
+
+function avisoIngresoNoAutorizado(a) {
+  mostrarAviso({
+    clave: 'acceso-' + a.id,
+    tipo: 'peligro',
+    titulo: `Patente ${a.patente_detectada} no autorizada`,
+    texto: `${a.camara_nombre || 'Cámara'} · ${formatearHora(a.fecha_hora)} · Revisa la captura y autoriza o rechaza el ingreso.`,
+    accion: { texto: 'Ir al monitor', href: CONFIG.RAIZ + PAGINA_MONITOR + '?acceso=' + a.id },
+  });
+}
+
+async function iniciarAvisosTiempoReal(usuario, activo) {
+  const esGuardia = usuario.rol === 'guardia';
+  const enMonitor = esGuardia && activo === 'monitor';
+
+  // Al entrar a cualquier sección: cámaras sin señal y, para el guardia fuera del monitor, alertas pendientes
+  api.get('/camaras').then((camaras) => {
+    camaras
+      .filter((c) => c.asignada && c.dispositivo_estado === 'sin_conexion')
+      .forEach((c) => avisoEquipoSinSenal({ id: c.dispositivo_id, nombre: c.dispositivo_nombre, camara_nombre: c.nombre }));
+  }).catch(() => {});
+
+  if (esGuardia && !enMonitor) {
+    api.get('/accesos?alerta=pendiente&limite=1').then(({ datos, total }) => {
+      if (!total) return;
+      mostrarAviso({
+        clave: 'alertas-pendientes',
+        valor: datos[0].id + '-' + total,
+        tipo: 'peligro',
+        titulo: total === 1 ? 'Hay 1 alerta pendiente' : `Hay ${total} alertas pendientes`,
+        texto: 'Ingresos no autorizados que esperan tu decisión.',
+        accion: { texto: 'Ir al monitor', href: CONFIG.RAIZ + PAGINA_MONITOR + '?acceso=' + datos[0].id },
+      });
+    }).catch(() => {});
+  }
+
+  let socket = null;
+  try {
+    socket = await asegurarSocket();
+  } catch (e) {
+    return; // sin tiempo real la página sigue funcionando
+  }
+  if (!socket) return;
+
+  socket.on('dispositivo:estado', alCambiarEstadoEquipo);
+  if (esGuardia && !enMonitor) {
+    socket.on('acceso:nuevo', (a) => {
+      if (a.resultado === 'denegado' && a.alerta_estado === 'pendiente') avisoIngresoNoAutorizado(a);
+    });
+    // Si otro guardia atendió la alerta, el aviso ya no corresponde
+    socket.on('acceso:actualizado', (a) => {
+      if (a.alerta_estado !== 'pendiente') quitarAviso('acceso-' + a.id);
+    });
+  }
 }

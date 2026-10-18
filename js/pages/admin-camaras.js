@@ -149,7 +149,7 @@
           <td>${c.asignada
             ? `<span class="principal">${escapar(c.dispositivo_nombre)}</span><span class="secundario">${escapar(c.dispositivo_identificador)}</span>`
             : '<span class="texto-suave">Sin equipo</span>'}</td>
-          <td>${c.asignada ? badge(c.estado) : badge('pendiente')}</td>
+          <td>${badge(estadoCamara(c))}</td>
           <td class="acciones">
             ${c.asignada ? '' : `<button type="button" class="btn-texto" data-accion="editar-camara" data-id="${c.id}">Asignar equipo</button>`}
             <button type="button" class="btn-texto" data-accion="editar-camara" data-id="${c.id}">Editar</button>
@@ -230,6 +230,9 @@
       case 'eliminar-camara': return eliminarCamara(c);
     }
   });
+
+  // Una Raspberry Pi se conectó o perdió la señal: se actualizan su estado y el de su cámara
+  document.addEventListener('seguria:dispositivo', cargar);
 
   cargar();
 })();
