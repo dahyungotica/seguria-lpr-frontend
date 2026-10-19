@@ -313,13 +313,24 @@ async function asegurarSocket() {
 }
 
 // Aviso de una cámara cuyo equipo no tiene señal
-function avisoEquipoSinSenal(d) {
+// La plataforma solo se comunica con la Raspberry Pi: si el equipo pierde la conexión, tampoco se sabe de su cámara.
+//  - motivo "sin_conexion": el equipo no tiene conexión (equipo y cámara sin señal)
+//  - motivo "sin_imagen":   el equipo está conectado, pero informa que no recibe imagen de la cámara
+function motivoSinSenal(estadoEquipo, camaraSenal) {
+  if (estadoEquipo === 'sin_conexion') return 'sin_conexion';
+  if (estadoEquipo === 'activo' && camaraSenal === false) return 'sin_imagen';
+  return null;
+}
+
+function avisoEquipoSinSenal(d, motivo) {
   mostrarAviso({
     clave: 'equipo-' + d.id,
-    valor: 'sin_conexion',
+    valor: motivo,
     tipo: 'peligro',
-    titulo: 'Cámara sin señal',
-    texto: `${d.camara_nombre} · equipo ${d.nombre}. Sus detecciones no llegarán al sistema hasta que se recupere la conexión.`,
+    titulo: motivo === 'sin_imagen' ? 'Cámara sin señal' : 'Equipo y cámara sin señal',
+    texto: motivo === 'sin_imagen'
+      ? `${d.camara_nombre}: el equipo ${d.nombre} está conectado, pero no recibe imagen de la cámara. No se detectarán patentes hasta que se recupere.`
+      : `${d.camara_nombre}: el equipo ${d.nombre} perdió la conexión con la plataforma, por lo que tampoco hay señal de su cámara. Sus detecciones no llegarán hasta que se recupere.`,
   });
 }
 
@@ -328,9 +339,10 @@ function alCambiarEstadoEquipo(d) {
   document.dispatchEvent(new CustomEvent('seguria:dispositivo', { detail: d }));
   if (!d.camara_id) return;
   const clave = 'equipo-' + d.id;
-  if (d.estado === 'sin_conexion') {
-    recordarAvisoCerrado(clave); // desconexión nueva: se vuelve a avisar aunque antes lo hubiera cerrado
-    avisoEquipoSinSenal(d);
+  const motivo = motivoSinSenal(d.estado, d.camara_senal);
+  if (motivo) {
+    recordarAvisoCerrado(clave); // pérdida de señal nueva: se vuelve a avisar aunque antes lo hubiera cerrado
+    avisoEquipoSinSenal(d, motivo);
   } else if (d.estado === 'activo') {
     const habiaAviso = existeAviso(clave);
     quitarAviso(clave);
@@ -377,8 +389,11 @@ async function iniciarAvisosTiempoReal(usuario, activo) {
   // Al entrar a cualquier sección: cámaras sin señal y, para el guardia fuera del monitor, alertas pendientes
   api.get('/camaras').then((camaras) => {
     camaras
-      .filter((c) => c.asignada && c.dispositivo_estado === 'sin_conexion')
-      .forEach((c) => avisoEquipoSinSenal({ id: c.dispositivo_id, nombre: c.dispositivo_nombre, camara_nombre: c.nombre }));
+      .filter((c) => c.asignada && motivoSinSenal(c.dispositivo_estado, c.camara_senal))
+      .forEach((c) => avisoEquipoSinSenal(
+        { id: c.dispositivo_id, nombre: c.dispositivo_nombre, camara_nombre: c.nombre },
+        motivoSinSenal(c.dispositivo_estado, c.camara_senal)
+      ));
   }).catch(() => {});
 
   if (esGuardia && !enMonitor) {

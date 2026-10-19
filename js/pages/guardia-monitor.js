@@ -258,7 +258,7 @@
   // Una Raspberry Pi se conectó o perdió la señal (el aviso en pantalla lo muestra layout.js)
   document.addEventListener('seguria:dispositivo', (e) => {
     const d = e.detail;
-    camaras = camaras.map((c) => (c.dispositivo_id === d.id ? { ...c, dispositivo_estado: d.estado } : c));
+    camaras = camaras.map((c) => (c.dispositivo_id === d.id ? { ...c, dispositivo_estado: d.estado, camara_senal: d.camara_senal } : c));
     dibujarCamaras();
   });
 

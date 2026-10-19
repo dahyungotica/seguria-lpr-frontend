@@ -103,10 +103,11 @@ function badge(clave) {
   return `<span class="badge${tipo ? ' badge-' + tipo : ''}">${escapar(texto)}</span>`;
 }
 
-// Estado que se muestra de una cámara: sin equipo queda pendiente; activa pero con su equipo desconectado, "Sin señal"
+// Estado que se muestra de una cámara: sin equipo queda pendiente. Una cámara activa queda "Sin señal" si su
+// equipo está desconectado (la plataforma solo llega a la cámara a través de él) o si el equipo informa que no recibe imagen.
 function estadoCamara(c) {
   if (!c.asignada) return 'pendiente';
-  if (c.estado === 'activa' && c.dispositivo_estado !== 'activo') return 'sin_senal';
+  if (c.estado === 'activa' && (c.dispositivo_estado !== 'activo' || c.camara_senal === false)) return 'sin_senal';
   return c.estado;
 }
 
