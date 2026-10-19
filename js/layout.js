@@ -21,6 +21,8 @@ const ICONOS = {
   auditoria: '<path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h4"/>',
   cambiar: '<path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>',
   perfil: '<circle cx="12" cy="8" r="4"/><path d="M4 21v-1a7 7 0 0 1 7-7h2a7 7 0 0 1 7 7v1"/>',
+  sonido: '<path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14"/>',
+  silencio: '<path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M23 9l-6 6M17 9l6 6"/>',
 };
 
 // "Mi perfil" aparece al final del menú de todos los roles
@@ -102,6 +104,7 @@ function crearHeader(usuario, titulo) {
     '<h1 class="header-titulo"></h1>' +
     '<span class="estado-conexion oculto" id="estado-conexion" role="status"><span class="estado-conexion-texto"></span></span>' +
     '<div class="header-usuario">' +
+    '<button class="btn btn-secundario btn-sonido oculto" id="btn-sonido" type="button"></button>' +
     '<button class="btn btn-secundario btn-cambiar-recinto oculto" id="btn-cambiar-recinto" type="button" title="Entrar con otro rol o recinto">' +
     icono('cambiar') + '<span>Cambiar perfil</span></button>' +
     '<a class="usuario-enlace" href="' + CONFIG.RAIZ + ITEM_PERFIL.href + '" title="Mi perfil">' +
@@ -159,6 +162,7 @@ function iniciarPagina({ roles, activo, titulo }) {
   activarMenuMovil();
 
   if (usuario.rol === 'admin_recinto') cargarContadorNotificaciones();
+  if (usuario.rol === 'guardia') iniciarSonido();
   if (usuario.rol === 'guardia' || usuario.rol === 'admin_recinto') iniciarAvisosTiempoReal(usuario, activo);
 
   document.body.classList.add('listo');
@@ -217,6 +221,100 @@ function abrirCambioRecinto() {
   });
 }
 
+// ---------- Sonido de los avisos del guardia ----------
+// Tonos generados con Web Audio (sin archivos de audio):
+//  - "alerta": ingreso no autorizado o cámara sin señal (tres tonos)
+//  - "aviso":  ingreso autorizado o visita (dos tonos suaves)
+// Los navegadores solo dejan sonar una página después de que la persona interactúa con ella:
+// el primer clic o tecla en la página activa el audio. El guardia puede silenciarlo con el botón del encabezado.
+const CLAVE_SONIDO = 'seguria_sonido';
+const TONOS = {
+  alerta: { volumen: 0.3, notas: [[880, 0, 0.16], [660, 0.2, 0.16], [880, 0.4, 0.24]] },
+  aviso: { volumen: 0.18, notas: [[660, 0, 0.12], [990, 0.15, 0.2]] },
+};
+let contextoAudio = null;
+let avisoAudioBloqueado = false;
+
+function sonidoActivado() {
+  try {
+    return localStorage.getItem(CLAVE_SONIDO) !== 'no';
+  } catch (e) {
+    return true;
+  }
+}
+
+function obtenerAudio() {
+  if (!contextoAudio) {
+    const Contexto = window.AudioContext || window.webkitAudioContext;
+    if (!Contexto) return null;
+    contextoAudio = new Contexto();
+  }
+  return contextoAudio;
+}
+
+function desbloquearAudio() {
+  const audio = obtenerAudio();
+  if (audio && audio.state === 'suspended') audio.resume().catch(() => {});
+}
+
+function reproducirSonido(tipo) {
+  if (!sonidoActivado() || !TONOS[tipo]) return;
+  const audio = obtenerAudio();
+  if (!audio) return;
+  if (audio.state !== 'running') {
+    // Aún no hay interacción con la página: se avisa una vez cómo activarlo
+    if (!avisoAudioBloqueado) {
+      avisoAudioBloqueado = true;
+      toast('Haz clic en cualquier parte de la página para activar el sonido de los avisos.');
+    }
+    return;
+  }
+  const { volumen, notas } = TONOS[tipo];
+  const inicio = audio.currentTime;
+  notas.forEach(([frecuencia, desde, duracion]) => {
+    const oscilador = audio.createOscillator();
+    const ganancia = audio.createGain();
+    oscilador.type = 'sine';
+    oscilador.frequency.value = frecuencia;
+    ganancia.gain.setValueAtTime(0.0001, inicio + desde);
+    ganancia.gain.exponentialRampToValueAtTime(volumen, inicio + desde + 0.02);
+    ganancia.gain.exponentialRampToValueAtTime(0.0001, inicio + desde + duracion);
+    oscilador.connect(ganancia).connect(audio.destination);
+    oscilador.start(inicio + desde);
+    oscilador.stop(inicio + desde + duracion + 0.02);
+  });
+}
+
+// Botón del encabezado (solo guardia) para activar o silenciar el sonido
+function pintarBotonSonido(boton) {
+  const activo = sonidoActivado();
+  boton.innerHTML = icono(activo ? 'sonido' : 'silencio');
+  boton.setAttribute('aria-pressed', String(activo));
+  boton.setAttribute('aria-label', activo ? 'Silenciar los avisos' : 'Activar el sonido de los avisos');
+  boton.title = activo ? 'Sonido de avisos activado (clic para silenciar)' : 'Sonido de avisos silenciado (clic para activar)';
+}
+
+function iniciarSonido() {
+  ['pointerdown', 'keydown'].forEach((evento) => document.addEventListener(evento, desbloquearAudio, { passive: true }));
+  const boton = document.getElementById('btn-sonido');
+  if (!boton) return;
+  boton.classList.remove('oculto');
+  pintarBotonSonido(boton);
+  boton.addEventListener('click', () => {
+    const activar = !sonidoActivado();
+    try {
+      localStorage.setItem(CLAVE_SONIDO, activar ? 'si' : 'no');
+    } catch (e) {
+      // Sin localStorage la preferencia dura solo mientras la página está abierta
+    }
+    pintarBotonSonido(boton);
+    if (activar) {
+      desbloquearAudio();
+      setTimeout(() => reproducirSonido('aviso'), 50); // muestra cómo suena
+    }
+  });
+}
+
 // ---------- Avisos en pantalla en todas las secciones (guardia y admin de recinto) ----------
 // - Guardia: cada ingreso le llega en cualquier sección, con acceso directo al monitor
 //   (no autorizado: queda hasta que se atiende; autorizado o visita: se va solo a los 45 s).
@@ -224,6 +322,7 @@ function abrirCambioRecinto() {
 // Las páginas que necesitan reaccionar al estado de los equipos escuchan el evento "seguria:dispositivo".
 
 const PAGINA_MONITOR = 'pages/guardia/monitor.html';
+let rolAvisos = null; // rol de la sesión: solo el guardia escucha los avisos
 const CLAVE_AVISOS_CERRADOS = 'seguria_avisos_cerrados';
 
 function avisosCerrados() {
@@ -343,6 +442,7 @@ function alCambiarEstadoEquipo(d) {
   if (motivo) {
     recordarAvisoCerrado(clave); // pérdida de señal nueva: se vuelve a avisar aunque antes lo hubiera cerrado
     avisoEquipoSinSenal(d, motivo);
+    if (rolAvisos === 'guardia') reproducirSonido('alerta');
   } else if (d.estado === 'activo') {
     const habiaAviso = existeAviso(clave);
     quitarAviso(clave);
@@ -367,6 +467,7 @@ function avisoIngresoPermitido(a) {
     accion: { texto: 'Ver en el monitor', href: CONFIG.RAIZ + PAGINA_MONITOR + '?acceso=' + a.id, secundario: true },
     duracion: 45 * 1000,
   });
+  reproducirSonido('aviso');
   document.querySelectorAll('.aviso.exito').forEach((el, i) => {
     if (i >= MAX_AVISOS_PERMITIDOS) el.remove();
   });
@@ -380,11 +481,13 @@ function avisoIngresoNoAutorizado(a) {
     texto: `${a.camara_nombre || 'Cámara'} · ${formatearHora(a.fecha_hora)} · Revisa la captura y autoriza o rechaza el ingreso.`,
     accion: { texto: 'Ir al monitor', href: CONFIG.RAIZ + PAGINA_MONITOR + '?acceso=' + a.id },
   });
+  reproducirSonido('alerta');
 }
 
 async function iniciarAvisosTiempoReal(usuario, activo) {
   const esGuardia = usuario.rol === 'guardia';
   const enMonitor = esGuardia && activo === 'monitor';
+  rolAvisos = usuario.rol;
 
   // Al entrar a cualquier sección: cámaras sin señal y, para el guardia fuera del monitor, alertas pendientes
   api.get('/camaras').then((camaras) => {

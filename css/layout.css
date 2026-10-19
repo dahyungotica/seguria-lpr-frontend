@@ -209,6 +209,21 @@ body.app.listo {
   height: 16px;
 }
 
+/* Activar o silenciar el sonido de los avisos (guardia) */
+.btn-sonido {
+  padding: 0.45rem 0.55rem;
+}
+
+.btn-sonido svg {
+  display: block;
+  width: 18px;
+  height: 18px;
+}
+
+.btn-sonido[aria-pressed="false"] {
+  color: var(--color-texto-suave);
+}
+
 /* Perfiles (recinto + rol) en "Cambiar perfil" y en Mi perfil (igual que en login.css) */
 .lista-recintos {
   display: flex;

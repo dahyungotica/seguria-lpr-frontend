@@ -275,6 +275,8 @@
       if ((!camara || acceso.camara_id === camara) && !autorizando && !tapaAlerta) mostrar(acceso);
       else dibujarRecientes();
       if (acceso.resultado === 'denegado') toast(`Patente ${acceso.patente_detectada} NO autorizada`, 'error');
+      // Sonido de la detección (el guardia puede silenciarlo desde el encabezado)
+      reproducirSonido(acceso.resultado === 'denegado' ? 'alerta' : 'aviso');
     });
     socket.on('acceso:actualizado', actualizar);
     // Si cambian vehículos o visitas, se refresca la lista de visitas
